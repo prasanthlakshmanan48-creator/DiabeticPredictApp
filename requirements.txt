@@ -10,7 +10,8 @@ matplotlib>=3.7.0
 seaborn>=0.12.0
 openpyxl>=3.1.0
 
-# Backend Flask REST API & Utilities
+# Backend Flask REST API & WSGI Production Server
 flask>=3.0.0
 flask-cors>=4.0.0
+gunicorn>=21.2.0
 psutil>=5.9.0
