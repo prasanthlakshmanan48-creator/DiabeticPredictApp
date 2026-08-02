@@ -8,8 +8,8 @@ const getApiBaseUrl = () => {
     return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
   }
 
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return `http://${window.location.hostname}:5000/api`;
+  if (import.meta.env.PROD || (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com'))) {
+    return 'https://diabeticpredictapp.onrender.com/api';
   }
 
   return 'http://localhost:5000/api';
