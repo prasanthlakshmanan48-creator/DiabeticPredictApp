@@ -1,0 +1,72 @@
+{
+  "random_forest": {
+    "accuracy": 0.93125,
+    "precision": 0.9107142857142857,
+    "recall": 0.8947368421052632,
+    "f1_score": 0.9026548672566371,
+    "roc_auc": 0.9860330437744848,
+    "confusion_matrix": {
+      "tn": 98,
+      "fp": 5,
+      "fn": 6,
+      "tp": 51
+    }
+  },
+  "logistic_regression": {
+    "accuracy": 0.9625,
+    "precision": 0.9636363636363636,
+    "recall": 0.9298245614035088,
+    "f1_score": 0.9464285714285714,
+    "roc_auc": 0.9911429058082099,
+    "confusion_matrix": {
+      "tn": 101,
+      "fp": 2,
+      "fn": 4,
+      "tp": 53
+    }
+  },
+  "feature_importances": [
+    {
+      "feature": "Insulin",
+      "importance": 0.268238097264544
+    },
+    {
+      "feature": "Glucose",
+      "importance": 0.23982760815479773
+    },
+    {
+      "feature": "BMI",
+      "importance": 0.11589458046719643
+    },
+    {
+      "feature": "Age",
+      "importance": 0.11016941791422398
+    },
+    {
+      "feature": "Pregnancies",
+      "importance": 0.10717082817974517
+    },
+    {
+      "feature": "SkinThickness",
+      "importance": 0.07441515157371889
+    },
+    {
+      "feature": "DiabetesPedigreeFunction",
+      "importance": 0.047024496859073533
+    },
+    {
+      "feature": "BloodPressure",
+      "importance": 0.03725981958670044
+    }
+  ],
+  "dataset_summary": {
+    "total_samples": 800,
+    "diabetic_count": 285,
+    "non_diabetic_count": 515,
+    "avg_bmi": 30.79258319459609,
+    "avg_glucose": 122.93473622814552,
+    "avg_age": 35.190921273895945,
+    "avg_bp": 71.66395525788745,
+    "avg_insulin": 96.54732626117232
+  }
+}
