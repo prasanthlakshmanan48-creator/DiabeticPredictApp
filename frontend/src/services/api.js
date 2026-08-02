@@ -4,7 +4,8 @@ import axios from 'axios';
 const getApiBaseUrl = () => {
   const customUrl = localStorage.getItem('api_host_url') || import.meta.env.VITE_API_URL;
   if (customUrl) {
-    return customUrl.endsWith('/api') ? customUrl : `${customUrl}/api`;
+    const cleanUrl = customUrl.trim().replace(/\/+$/, '');
+    return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
   }
 
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
