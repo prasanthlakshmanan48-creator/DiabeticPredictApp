@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { Settings as SettingsIcon, Sun, Moon, Palette, Globe, User, Save, Check, Key, LogOut, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Sun, Moon, Palette, Globe, User, Save, Check, Key, LogOut, Shield, Server } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ const Settings = () => {
   const [gender, setGender] = useState(user?.gender || 'Female');
   const [height, setHeight] = useState(user?.height || 165);
   const [weight, setWeight] = useState(user?.weight || 68);
+  const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('api_host_url') || 'http://localhost:5000/api');
 
   const themeColors = [
     { name: 'Royal Blue (Default)', hex: '#2563EB', bg: 'bg-blue-600' },
@@ -29,6 +30,12 @@ const Settings = () => {
   const handleSaveProfile = (e) => {
     e.preventDefault();
     toast.success('User profile updated successfully!');
+  };
+
+  const handleSaveApi = (e) => {
+    e.preventDefault();
+    localStorage.setItem('api_host_url', apiUrl);
+    toast.success(`API host endpoint connected: ${apiUrl}`);
   };
 
   const handleChangePassword = () => {
@@ -203,7 +210,7 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Right Column: Appearance & Language Options */}
+        {/* Right Column: Appearance, Language & API Host Options */}
         <div className="lg:col-span-6 space-y-6">
           
           {/* Interface Mode */}
@@ -291,6 +298,41 @@ const Settings = () => {
               <option value="en">English</option>
               <option value="ta">தமிழ் (Tamil)</option>
             </select>
+          </div>
+
+          {/* Backend Server API Host */}
+          <div className="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
+                <Server className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white">ML Backend API Endpoint</h3>
+                <p className="text-[11px] text-slate-400">Connect to your deployed Render API (or Local API)</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveApi} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  API Host URL
+                </label>
+                <input
+                  type="text"
+                  value={apiUrl}
+                  onChange={(e) => setApiUrl(e.target.value)}
+                  placeholder="https://diabetic-predict-api.onrender.com/api"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 outline-none font-mono text-[11px]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" /> Save API Endpoint
+              </button>
+            </form>
           </div>
 
         </div>

@@ -1,13 +1,31 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// Dynamic API Base URL resolution for Local PC, Mobile Network Wi-Fi, and Render Production
+const getApiBaseUrl = () => {
+  const customUrl = localStorage.getItem('api_host_url') || import.meta.env.VITE_API_URL;
+  if (customUrl) {
+    return customUrl.endsWith('/api') ? customUrl : `${customUrl}/api`;
+  }
+
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return `http://${window.location.hostname}:5000/api`;
+  }
+
+  return 'http://localhost:5000/api';
+};
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 8000,
+  timeout: 10000,
+});
+
+// Update baseURL dynamically on each request in case user changed Settings
+api.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
+  return config;
 });
 
 // Fallback local storage helper for seamless execution if API is offline
