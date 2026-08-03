@@ -31,6 +31,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../firebase";
+
 
 const Prediction = () => {
   const { t, language } = useTheme();
@@ -201,6 +204,26 @@ const Prediction = () => {
         const fullResult = { ...response, health_score: healthScore, userId: user?.uid };
         setResult(fullResult);
         localStorage.setItem('latest_patient_prediction', JSON.stringify(fullResult));
+
+        // Step 16: Save Prediction History in Firestore
+        try {
+          await addDoc(collection(db, "predictions"), {
+            uid: user?.uid || "guest_123",
+            patientName: data.patient_name || response.patient_name || "Ravi",
+            age: Number(data.age || 45),
+            glucose: Number(data.glucose || 180),
+            bmi: Number(data.bmi || 32.5),
+            insulin: Number(data.insulin || 120),
+            prediction: response.prediction === 1 ? "High Risk" : "Low Risk",
+            probability: `${(response.probability * 100).toFixed(0)}%`,
+            algorithm: response.algorithm || "Random Forest",
+            risk: response.risk_level || (response.prediction === 1 ? "Severe" : "Low"),
+            date: new Date().toISOString().split('T')[0],
+            createdAt: new Date()
+          });
+        } catch (fsErr) {
+          console.warn("Firestore prediction save:", fsErr);
+        }
 
         if (response.prediction === 0) {
           toast.success(`Analysis Complete for ${response.patient_name}: LOW RISK`);

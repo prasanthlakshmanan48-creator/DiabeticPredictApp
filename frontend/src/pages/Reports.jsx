@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Download, Printer, ShieldCheck, Activity, Stethoscope, ArrowLeft, CheckCircle, AlertTriangle, Heart } from 'lucide-react';
+import { FileText, Download, Printer, ShieldCheck, Activity, Stethoscope, ArrowLeft, CheckCircle, AlertTriangle, Heart, CloudUpload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import html2pdf from 'html2pdf.js';
 import VoiceAssistant from '../components/VoiceAssistant';
 import { useTheme } from '../context/ThemeContext';
+import { uploadPDFReport } from '../services/firebaseStorage';
+
 
 const Reports = () => {
   const { t } = useTheme();
@@ -81,6 +83,28 @@ const Reports = () => {
     window.print();
   };
 
+  const handleSaveToStorage = async () => {
+    const element = reportRef.current;
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `Medical_Report_${data.patient_name.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    try {
+      toast.loading('Uploading PDF report to Firebase Storage...', { id: 'storage-toast' });
+      const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+      const filename = `Report_${data.patient_name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+      const downloadUrl = await uploadPDFReport(filename, pdfBlob);
+      toast.success('Report saved to Firebase Storage!', { id: 'storage-toast' });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to upload PDF report to Firebase Storage.', { id: 'storage-toast' });
+    }
+  };
+
   const speechText = `Diagnostic Report for ${data.patient_name}. Diabetes Risk: ${data.risk_level}. Health Score: ${data.health_score || 85} out of 100. Outcome: ${data.prediction === 1 ? 'High risk indicated. Please consult a physician.' : 'Low risk indicated.'}`;
 
   return (
@@ -99,13 +123,20 @@ const Reports = () => {
             <span>{t('reports')}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Official machine learning diagnostic report ready for patient record retention and printing.
+            Official machine learning diagnostic report ready for patient record retention, cloud storage, and printing.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <VoiceAssistant textToRead={speechText} />
 
+          <button
+            onClick={handleSaveToStorage}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary-600 hover:bg-secondary-700 text-white text-xs font-bold shadow-md transition-all"
+            title="Step 17: Save PDF report to Firebase Storage"
+          >
+            <CloudUpload className="w-4 h-4" /> Save to Storage
+          </button>
           <button
             onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
