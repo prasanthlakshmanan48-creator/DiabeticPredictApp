@@ -29,17 +29,17 @@ services:
       - key: VITE_API_URL
         value: https://diabeticpredictapp.onrender.com
       - key: VITE_FIREBASE_API_KEY
-        value: AIzaSyDiabetesPredictAppDefaultKey12345
+        value: AAIzaSyBMyNWDC31ycEeBcmBbbNRZl4Cci1yd9ts
       - key: VITE_FIREBASE_AUTH_DOMAIN
         value: diabetes-prediction-app-7db47.firebaseapp.com
       - key: VITE_FIREBASE_PROJECT_ID
         value: diabetes-prediction-app-7db47
       - key: VITE_FIREBASE_STORAGE_BUCKET
-        value: diabetes-prediction-app-7db47.appspot.com
+        value: diabetes-prediction-app-7db47.firebasestorage.app
       - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        value: 102938475610
+        value: 1010148864086
       - key: VITE_FIREBASE_APP_ID
-        value: 1:102938475610:web:abcdef123456789
+        value: 1:1010148864086:web:3097581f80bb39808f4bf7
     routes:
       - type: rewrite
         source: /*
