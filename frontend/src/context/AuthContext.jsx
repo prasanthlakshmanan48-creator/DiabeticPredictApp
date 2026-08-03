@@ -1,15 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, db } from '../firebase';
-import { 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut, 
-  sendPasswordResetEmail 
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { loginUser, registerUser, logoutUser, getCurrentUser } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -20,85 +10,69 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Step 13: Detect Logged-in User
+  // Initialize and verify session on app load
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        console.log(firebaseUser);
-        const userData = {
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          email: firebaseUser.email,
-          photo: firebaseUser.photoURL || '',
-          isAuthenticated: true
-        };
-        setUser(userData);
-        localStorage.setItem('auth_user', JSON.stringify(userData));
+    const checkAuthStatus = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        try {
+          const res = await getCurrentUser();
+          if (res && res.user) {
+            const userData = { ...res.user, name: res.user.fullname, isAuthenticated: true };
+            setUser(userData);
+            localStorage.setItem('auth_user', JSON.stringify(userData));
+          }
+        } catch (err) {
+          console.warn('Session expired or invalid JWT token.');
+          setUser(null);
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+        }
       } else {
-        console.log("No User");
         setUser(null);
         localStorage.removeItem('auth_user');
       }
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    checkAuthStatus();
   }, []);
 
   const login = async (email, password) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log(userCredential.user);
-    return userCredential.user;
+    const res = await loginUser(email, password);
+    if (res && res.token) {
+      localStorage.setItem('auth_token', res.token);
+      const userData = { ...res.user, name: res.user.fullname, isAuthenticated: true };
+      setUser(userData);
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+      return userData;
+    }
+    throw new Error(res?.error || 'Login failed.');
   };
 
-  const register = async (email, password, name = '') => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log(userCredential.user);
-    
-    // Step 15: Save User Details to Firestore
-    try {
-      await setDoc(doc(db, "users", userCredential.user.uid), {
-        name: name || userCredential.user.displayName || "User",
-        email: userCredential.user.email,
-        photo: userCredential.user.photoURL || "",
-        createdAt: new Date().toISOString().split('T')[0]
-      });
-    } catch (err) {
-      console.error("Firestore user save error:", err);
+  const register = async (email, password, fullname) => {
+    const res = await registerUser(fullname, email, password);
+    if (res && res.token) {
+      localStorage.setItem('auth_token', res.token);
+      const userData = { ...res.user, name: res.user.fullname, isAuthenticated: true };
+      setUser(userData);
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+      return userData;
     }
-    
-    return userCredential.user;
-  };
-
-  const loginGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    console.log(result.user);
-
-    // Step 15: Save User Details to Firestore
-    try {
-      await setDoc(doc(db, "users", result.user.uid), {
-        name: result.user.displayName || "Google User",
-        email: result.user.email,
-        photo: result.user.photoURL || "",
-        createdAt: new Date().toISOString().split('T')[0]
-      });
-    } catch (err) {
-      console.error("Firestore Google user save error:", err);
-    }
-
-    return result.user;
+    throw new Error(res?.error || 'Registration failed.');
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setUser(null);
+    try {
+      await logoutUser();
+    } catch (e) {}
+    localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    setUser(null);
   };
 
   const resetPassword = async (email) => {
-    await sendPasswordResetEmail(auth, email);
-    alert("Password reset email sent.");
+    return true;
   };
 
   return (
@@ -107,11 +81,9 @@ export const AuthProvider = ({ children }) => {
       loading, 
       login, 
       register, 
-      loginGoogle, 
-      googleLogin: loginGoogle, 
       logout, 
       resetPassword, 
-      isAuthenticated: !!user?.isAuthenticated || !!user?.uid 
+      isAuthenticated: !!user && (!!user.isAuthenticated || !!user.id)
     }}>
       {children}
     </AuthContext.Provider>
@@ -119,4 +91,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-

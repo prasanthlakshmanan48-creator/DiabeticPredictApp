@@ -6,10 +6,14 @@ import joblib
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+from functools import wraps
 
 app = Flask(__name__)
 CORS(app)
 
+SECRET_KEY = os.environ.get('JWT_SECRET', 'diabetex_jwt_secret_key_2026_secure')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'model')
 DB_PATH = os.path.join(BASE_DIR, 'database.db')
@@ -41,9 +45,23 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
+    
+    # 1. Users Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fullname TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # 2. Predictions Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             patient_name TEXT,
             pregnancies REAL,
             glucose REAL,
@@ -62,14 +80,52 @@ def init_db():
             doctor_rec TEXT,
             water_rec TEXT,
             sleep_rec TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
+
+    # Migration check: Ensure user_id column exists if table was created previously
+    cursor.execute("PRAGMA table_info(predictions)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'user_id' not in columns:
+        cursor.execute("ALTER TABLE predictions ADD COLUMN user_id INTEGER")
+
     conn.commit()
     conn.close()
 
 init_db()
 load_artifacts()
+
+# JWT Helpers
+def generate_jwt_token(user_id, email, fullname):
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'fullname': fullname,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+def get_current_user_id():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return None
+    try:
+        token = auth_header.split(" ")[1] if " " in auth_header else auth_header
+        data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        return data.get('user_id')
+    except Exception:
+        return None
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({'message': 'Authorization token required or invalid'}), 401
+        return f(user_id, *args, **kwargs)
+    return decorated
 
 def generate_recommendations(prediction, probability, bmi, glucose, age):
     risk_percentage = round(probability * 100, 1)
@@ -115,6 +171,107 @@ def generate_recommendations(prediction, probability, bmi, glucose, age):
         }
     }
 
+# ----------------- AUTH ROUTING ----------------- #
+
+@app.route('/api/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json or {}
+    fullname = data.get('fullname', '').strip()
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+
+    if not fullname or not email or not password:
+        return jsonify({'error': 'Full name, email, and password are required.'}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'User with this email already exists.'}), 400
+
+    password_hash = generate_password_hash(password)
+    cursor.execute(
+        "INSERT INTO users (fullname, email, password_hash) VALUES (?, ?, ?)",
+        (fullname, email, password_hash)
+    )
+    conn.commit()
+    user_id = cursor.lastrowid
+    conn.close()
+
+    token = generate_jwt_token(user_id, email, fullname)
+
+    return jsonify({
+        'token': token,
+        'user': {
+            'id': user_id,
+            'fullname': fullname,
+            'email': email
+        },
+        'message': 'Account created successfully!'
+    }), 201
+
+@app.route('/api/login', methods=['POST'])
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json or {}
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required.'}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user or not check_password_hash(user['password_hash'], password):
+        return jsonify({'error': 'Invalid email or password.'}), 401
+
+    token = generate_jwt_token(user['id'], user['email'], user['fullname'])
+
+    return jsonify({
+        'token': token,
+        'user': {
+            'id': user['id'],
+            'fullname': user['fullname'],
+            'email': user['email']
+        },
+        'message': 'Signed in successfully!'
+    }), 200
+
+@app.route('/api/logout', methods=['POST'])
+@app.route('/logout', methods=['POST'])
+def logout():
+    return jsonify({'success': True, 'message': 'Logged out successfully.'})
+
+@app.route('/api/me', methods=['GET'])
+@app.route('/me', methods=['GET'])
+@token_required
+def get_me(current_user_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, fullname, email, created_at FROM users WHERE id = ?", (current_user_id,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        return jsonify({'error': 'User not found.'}), 44
+
+    return jsonify({
+        'user': {
+            'id': user['id'],
+            'fullname': user['fullname'],
+            'email': user['email'],
+            'created_at': user['created_at']
+        }
+    })
+
+# ----------------- SYSTEM & PREDICTION ROUTES ----------------- #
+
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({
@@ -127,6 +284,7 @@ def health():
 def predict():
     try:
         data = request.json or {}
+        user_id = get_current_user_id()
         patient_name = data.get('patient_name', 'Anonymous Patient')
         pregnancies = float(data.get('pregnancies', 0))
         glucose = float(data.get('glucose', 120))
@@ -156,10 +314,10 @@ def predict():
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO predictions 
-            (patient_name, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, dpf, age, outcome, probability, risk_level, confidence, diet_rec, exercise_rec, doctor_rec, water_rec, sleep_rec)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (user_id, patient_name, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, dpf, age, outcome, probability, risk_level, confidence, diet_rec, exercise_rec, doctor_rec, water_rec, sleep_rec)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            patient_name, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, dpf, age,
+            user_id, patient_name, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, dpf, age,
             prediction, probability, recs["risk_level"], recs["confidence"],
             recs["recommendations"]["diet"], recs["recommendations"]["exercise"],
             recs["recommendations"]["doctor"], recs["recommendations"]["water"], recs["recommendations"]["sleep"]
@@ -170,6 +328,7 @@ def predict():
 
         return jsonify({
             "id": prediction_id,
+            "user_id": user_id,
             "patient_name": patient_name,
             "prediction": prediction,
             "outcome_text": "Diabetic" if prediction == 1 else "Non-Diabetic",
@@ -191,6 +350,7 @@ def predict():
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
+    user_id = get_current_user_id()
     search = request.args.get('search', '').strip()
     risk_filter = request.args.get('risk', '').strip()
     outcome_filter = request.args.get('outcome', '').strip()
@@ -200,6 +360,10 @@ def get_history():
 
     query = "SELECT * FROM predictions WHERE 1=1"
     params = []
+
+    if user_id:
+        query += " AND (user_id = ? OR user_id IS NULL)"
+        params.append(user_id)
 
     if search:
         query += " AND (patient_name LIKE ? OR id LIKE ?)"
@@ -222,35 +386,42 @@ def get_history():
 
 @app.route('/api/history/<int:pred_id>', methods=['DELETE'])
 def delete_history_item(pred_id):
+    user_id = get_current_user_id()
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM predictions WHERE id = ?", (pred_id,))
+    if user_id:
+        cursor.execute("DELETE FROM predictions WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (pred_id, user_id))
+    else:
+        cursor.execute("DELETE FROM predictions WHERE id = ?", (pred_id,))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": f"Prediction {pred_id} deleted."})
 
 @app.route('/api/analytics', methods=['GET'])
 def get_analytics():
+    user_id = get_current_user_id()
     conn = get_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*) FROM predictions")
+    where_clause = " WHERE user_id = ?" if user_id else ""
+    params = [user_id] if user_id else []
+
+    cursor.execute(f"SELECT COUNT(*) FROM predictions{where_clause}", params)
     total_preds = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM predictions WHERE outcome = 1")
+    cursor.execute(f"SELECT COUNT(*) FROM predictions{where_clause}{' AND' if user_id else ' WHERE'} outcome = 1", params)
     diabetic_count = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM predictions WHERE outcome = 0")
+    cursor.execute(f"SELECT COUNT(*) FROM predictions{where_clause}{' AND' if user_id else ' WHERE'} outcome = 0", params)
     non_diabetic_count = cursor.fetchone()[0]
 
-    cursor.execute("SELECT AVG(bmi), AVG(glucose), AVG(age) FROM predictions")
+    cursor.execute(f"SELECT AVG(bmi), AVG(glucose), AVG(age) FROM predictions{where_clause}", params)
     avg_row = cursor.fetchone()
     avg_bmi = round(avg_row[0] or 0, 1)
     avg_glucose = round(avg_row[1] or 0, 1)
     avg_age = round(avg_row[2] or 0, 1)
 
-    # All predictions for detailed charts
-    cursor.execute("SELECT age, bmi, glucose, outcome, risk_level, created_at FROM predictions ORDER BY created_at ASC")
+    cursor.execute(f"SELECT age, bmi, glucose, outcome, risk_level, created_at FROM predictions{where_clause} ORDER BY created_at ASC", params)
     all_rows = [dict(r) for r in cursor.fetchall()]
     conn.close()
 
@@ -269,7 +440,6 @@ def get_model_info():
     if metrics_data:
         return jsonify(metrics_data)
     
-    # Return default benchmark metrics if metrics file isn't loaded yet
     return jsonify({
         "random_forest": {
             "accuracy": 0.8875,

@@ -10,3 +10,5 @@ openpyxl
 psutil
 xgboost
 gunicorn
+PyJWT
+bcrypt

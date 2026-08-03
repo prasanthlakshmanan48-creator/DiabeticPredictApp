@@ -23,13 +23,45 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Update baseURL dynamically on each request in case user changed Settings
+// Update baseURL dynamically and attach JWT Authorization header on each request
 api.interceptors.request.use((config) => {
   config.baseURL = getApiBaseUrl();
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
-// Fallback local storage helper for seamless execution if API is offline
+// ------------ AUTHENTICATION API CALLS ------------
+
+export const registerUser = async (fullname, email, password) => {
+  const res = await api.post('/register', { fullname, email, password });
+  return res.data;
+};
+
+export const loginUser = async (email, password) => {
+  const res = await api.post('/login', { email, password });
+  return res.data;
+};
+
+export const logoutUser = async () => {
+  try {
+    const res = await api.post('/logout');
+    return res.data;
+  } catch (err) {
+    return { success: true };
+  }
+};
+
+export const getCurrentUser = async () => {
+  const res = await api.get('/me');
+  return res.data;
+};
+
+// ------------ PREDICTION & ANALYTICS API CALLS ------------
+
+// Fallback local storage helper for offline local testing if backend is down
 const getLocalHistory = () => {
   const data = localStorage.getItem('diabetes_predictions_local');
   return data ? JSON.parse(data) : [];
@@ -57,7 +89,6 @@ export const predictDiabetes = async (formData) => {
     const dpf = parseFloat(formData.dpf || 0.47);
     const age = parseFloat(formData.age || 33);
 
-    // Weighted risk score heuristic derived from Random Forest feature importances
     const score = (glucose / 200.0) * 0.35 + (bmi / 50.0) * 0.25 + (age / 80.0) * 0.15 + (dpf / 2.5) * 0.12 + (pregnancies / 15.0) * 0.08 + (insulin / 400.0) * 0.05;
     const probability = Math.min(Math.max(score, 0.06), 0.96);
     const outcome = probability >= 0.50 ? 1 : 0;
