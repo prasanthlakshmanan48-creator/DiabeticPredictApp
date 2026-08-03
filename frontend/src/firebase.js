@@ -3,15 +3,18 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDiabetesPredictAppDefaultKey12345",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "diabetes-prediction-app-7db47.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "diabetes-prediction-app-7db47",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "diabetes-prediction-app-7db47.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "102938475610",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:102938475610:web:abcdef123456789"
+  apiKey: "AIzaSyBMyNWDC31ycEeBcmBbbNRZl4Cci1yd9ts",
+  authDomain: "diabetes-prediction-app-7db47.firebaseapp.com",
+  projectId: "diabetes-prediction-app-7db47",
+  storageBucket: "diabetes-prediction-app-7db47.firebasestorage.app",
+  messagingSenderId: "1010148864086",
+  appId: "1:1010148864086:web:3097581f80bb39808f4bf7",
+  measurementId: "G-L5D3YYGV3N"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
