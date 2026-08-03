@@ -97,46 +97,31 @@ const Navbar = () => {
             </button>
 
             {/* User Profile */}
-            {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center gap-2 p-1 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-500/30" />
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 hidden lg:block">{user.name}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
-                </button>
-
-                {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-slate-200 dark:border-dark-border p-2 z-50">
-                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{user.name}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
-                    </div>
-                    <button
-                      onClick={() => { setShowProfileMenu(false); navigate('/settings'); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl"
-                    >
-                      <User className="w-3.5 h-3.5" /> {t('settings')}
-                    </button>
-                    <button
-                      onClick={() => { setShowProfileMenu(false); logout(); navigate('/login'); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-xl"
-                    >
-                      <LogOut className="w-3.5 h-3.5" /> {t('logout')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
+            <div className="relative">
               <button
-                onClick={() => navigate('/login')}
-                className="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold shadow-glow-primary"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 p-1 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                Sign In
+                <img src={user?.avatar} alt={user?.name} className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-500/30" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 hidden lg:block">{user?.name}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
               </button>
-            )}
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-slate-200 dark:border-dark-border p-2 z-50">
+                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{user?.name}</p>
+                    <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => { setShowProfileMenu(false); navigate('/settings'); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl"
+                  >
+                    <User className="w-3.5 h-3.5" /> {t('settings')}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

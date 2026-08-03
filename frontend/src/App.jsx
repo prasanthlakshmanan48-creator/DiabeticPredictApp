@@ -1,11 +1,10 @@
 import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 
 // Pages
-import Login from './pages/Login';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Prediction from './pages/Prediction';
@@ -15,17 +14,9 @@ import Analytics from './pages/Analytics';
 import About from './pages/About';
 import Settings from './pages/Settings';
 
-import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
-const ProtectedLayout = () => {
-  const { isAuthenticated } = useAuth();
-  const location = useLocation();
-
-  if (!isAuthenticated && location.pathname !== '/login') {
-    return <Navigate to="/login" replace />;
-  }
-
+const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-100 transition-colors duration-300">
       <Navbar />
@@ -66,8 +57,8 @@ const App = () => {
         }} 
       />
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/*" element={<ProtectedLayout />} />
+        <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/*" element={<MainLayout />} />
       </Routes>
     </>
   );

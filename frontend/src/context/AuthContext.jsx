@@ -1,89 +1,32 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { loginUser, registerUser, logoutUser, getCurrentUser } from '../services/api';
+import React, { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('auth_user');
-    return saved ? JSON.parse(saved) : null;
+  const [user] = useState({
+    id: 1,
+    name: 'Dr. Sarah Jenkins',
+    fullname: 'Dr. Sarah Jenkins',
+    email: 'sarah.jenkins@aihealth.org',
+    role: 'Senior Clinical Specialist',
+    avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=250&auto=format&fit=crop',
+    isAuthenticated: true
   });
-  const [loading, setLoading] = useState(true);
 
-  // Initialize and verify session on app load
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        try {
-          const res = await getCurrentUser();
-          if (res && res.user) {
-            const userData = { ...res.user, name: res.user.fullname, isAuthenticated: true };
-            setUser(userData);
-            localStorage.setItem('auth_user', JSON.stringify(userData));
-          }
-        } catch (err) {
-          console.warn('Session expired or invalid JWT token.');
-          setUser(null);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
-        }
-      } else {
-        setUser(null);
-        localStorage.removeItem('auth_user');
-      }
-      setLoading(false);
-    };
-
-    checkAuthStatus();
-  }, []);
-
-  const login = async (email, password) => {
-    const res = await loginUser(email, password);
-    if (res && res.token) {
-      localStorage.setItem('auth_token', res.token);
-      const userData = { ...res.user, name: res.user.fullname, isAuthenticated: true };
-      setUser(userData);
-      localStorage.setItem('auth_user', JSON.stringify(userData));
-      return userData;
-    }
-    throw new Error(res?.error || 'Login failed.');
-  };
-
-  const register = async (email, password, fullname) => {
-    const res = await registerUser(fullname, email, password);
-    if (res && res.token) {
-      localStorage.setItem('auth_token', res.token);
-      const userData = { ...res.user, name: res.user.fullname, isAuthenticated: true };
-      setUser(userData);
-      localStorage.setItem('auth_user', JSON.stringify(userData));
-      return userData;
-    }
-    throw new Error(res?.error || 'Registration failed.');
-  };
-
-  const logout = async () => {
-    try {
-      await logoutUser();
-    } catch (e) {}
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    setUser(null);
-  };
-
-  const resetPassword = async (email) => {
-    return true;
-  };
+  const login = async () => true;
+  const register = async () => true;
+  const logout = () => {};
+  const resetPassword = async () => true;
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      loading, 
+      loading: false, 
       login, 
       register, 
       logout, 
       resetPassword, 
-      isAuthenticated: !!user && (!!user.isAuthenticated || !!user.id)
+      isAuthenticated: true 
     }}>
       {children}
     </AuthContext.Provider>
