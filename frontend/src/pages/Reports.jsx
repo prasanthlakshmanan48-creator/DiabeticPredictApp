@@ -290,13 +290,6 @@ const Reports = () => {
             </div>
             <p className="text-slate-400 text-[10px]">Algorithm: Logistic Regression / Ensemble ML Engine</p>
           </div>
-
-          <div className="text-center w-48">
-            <div className="border-b border-slate-800 pb-1 mb-1 font-serif text-slate-800 font-bold italic text-sm">
-              Dr. Sarah Jenkins, MD
-            </div>
-            <p className="text-[10px] text-slate-500 font-semibold uppercase">Attending Clinician Signature</p>
-          </div>
         </div>
       </div>
     </div>

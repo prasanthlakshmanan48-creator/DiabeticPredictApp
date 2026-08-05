@@ -1,19 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
-import DisclaimerBanner from './DisclaimerBanner';
-import { Sun, Moon, Bell, Search, Activity, Sparkles, ChevronDown, User, LogOut, Type, Eye, Globe } from 'lucide-react';
+import { Sun, Moon, Activity, Type, Eye, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const { darkMode, toggleDarkMode, largeFont, toggleLargeFont, highContrast, toggleHighContrast, language, setLanguage, t } = useTheme();
-  const { user, logout } = useAuth();
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
 
   return (
     <>
-      <DisclaimerBanner />
       <header className="sticky top-0 z-30 bg-white/90 dark:bg-dark-card/90 backdrop-blur-md border-b border-slate-200/80 dark:border-dark-border px-4 lg:px-8 py-3 transition-colors duration-300">
         <div className="flex items-center justify-between gap-4">
           
@@ -95,33 +90,6 @@ const Navbar = () => {
             >
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-primary-600" />}
             </button>
-
-            {/* User Profile */}
-            <div className="relative">
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-2 p-1 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <img src={user?.avatar} alt={user?.name} className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-500/30" />
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 hidden lg:block">{user?.name}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
-              </button>
-
-              {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-slate-200 dark:border-dark-border p-2 z-50">
-                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{user?.name}</p>
-                    <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
-                  </div>
-                  <button
-                    onClick={() => { setShowProfileMenu(false); navigate('/settings'); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl"
-                  >
-                    <User className="w-3.5 h-3.5" /> {t('settings')}
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </header>

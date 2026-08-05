@@ -8,14 +8,11 @@ import {
   BarChart3, 
   Info, 
   Settings, 
-  LogOut,
   Sparkles,
   Home
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
-  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const navItems = [

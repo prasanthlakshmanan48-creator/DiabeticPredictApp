@@ -45,105 +45,80 @@ const Prediction = () => {
     {
       name: 'patient_name',
       label: t('patientName'),
-      placeholder: 'e.g. Johnathan Doe',
+      placeholder: 'e.g. Patient Name',
       type: 'text',
-      normalRange: 'N/A',
       tooltip: 'Identifies the clinical subject for record-keeping and PDF export.',
-      defaultValue: user?.name || 'Dr. Sample Patient'
+      defaultValue: 'Patient 1'
     },
     {
       name: 'pregnancies',
       label: t('pregnancies'),
-      placeholder: '0 - 17',
+      placeholder: 'Enter pregnancies count',
       type: 'number',
-      step: '1',
-      min: 0,
-      max: 20,
-      normalRange: '0 – 4 pregnancies',
+      step: 'any',
       tooltip: 'Number of past pregnancies. Gestational history influences metabolic insulin sensitivity.',
       defaultValue: 1
     },
     {
       name: 'glucose',
       label: t('glucose'),
-      placeholder: '70 - 200 mg/dL',
+      placeholder: 'Enter glucose (mg/dL)',
       type: 'number',
-      step: '1',
-      min: 0,
-      max: 300,
-      normalRange: '70 – 140 mg/dL (Fasting <100)',
+      step: 'any',
       tooltip: '2-hour plasma glucose concentration from an oral glucose tolerance test.',
       defaultValue: 110
     },
     {
       name: 'blood_pressure',
       label: t('bloodPressure'),
-      placeholder: '60 - 120 mmHg',
+      placeholder: 'Enter blood pressure (mmHg)',
       type: 'number',
-      step: '1',
-      min: 0,
-      max: 200,
-      normalRange: '60 – 80 mmHg',
+      step: 'any',
       tooltip: 'Diastolic blood pressure reading in mmHg.',
       defaultValue: 72
     },
     {
       name: 'skin_thickness',
       label: t('skinThickness'),
-      placeholder: '10 - 50 mm',
+      placeholder: 'Enter skin thickness (mm)',
       type: 'number',
-      step: '1',
-      min: 0,
-      max: 99,
-      normalRange: '10 – 30 mm',
+      step: 'any',
       tooltip: 'Triceps skin fold thickness in mm, used to estimate body fat percentage.',
       defaultValue: 23
     },
     {
       name: 'insulin',
       label: t('insulin'),
-      placeholder: '15 - 276 mu U/ml',
+      placeholder: 'Enter insulin (μU/mL)',
       type: 'number',
-      step: '1',
-      min: 0,
-      max: 900,
-      normalRange: '16 – 166 μU/mL',
+      step: 'any',
       tooltip: '2-Hour serum insulin level in micro-units per milliliter.',
       defaultValue: 80
     },
     {
       name: 'bmi',
       label: t('bmi'),
-      placeholder: '18.5 - 45.0 kg/m²',
+      placeholder: 'Enter BMI (kg/m²)',
       type: 'number',
-      step: '0.1',
-      min: 10,
-      max: 70,
-      normalRange: '18.5 – 24.9 kg/m²',
+      step: 'any',
       tooltip: 'Body Mass Index calculated as weight in kg / (height in m)². Key risk factor.',
       defaultValue: 24.5
     },
     {
       name: 'dpf',
       label: t('dpf'),
-      placeholder: '0.08 - 2.42',
+      placeholder: 'Enter diabetes pedigree score',
       type: 'number',
-      step: '0.01',
-      min: 0.01,
-      max: 3.0,
-      normalRange: '0.08 – 0.50 (Genetic History Score)',
+      step: 'any',
       tooltip: 'Scores genetic likelihood of diabetes based on family medical history.',
       defaultValue: 0.38
     },
     {
       name: 'age',
       label: t('age'),
-      placeholder: '21 - 85 years',
+      placeholder: 'Enter age (years)',
       type: 'number',
-      step: '1',
-      min: 21,
-      max: 110,
-      normalRange: '21 – 80 years',
+      step: 'any',
       tooltip: 'Age of the patient in years.',
       defaultValue: 32
     }
@@ -151,7 +126,7 @@ const Prediction = () => {
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm({
     defaultValues: {
-      patient_name: user?.name || 'Emma Watson',
+      patient_name: 'Patient 1',
       pregnancies: 1,
       glucose: 110,
       blood_pressure: 72,
@@ -289,17 +264,11 @@ const Prediction = () => {
                         )}
                       </div>
                     </label>
-
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      Normal: <strong className="text-slate-600 dark:text-slate-300">{field.normalRange}</strong>
-                    </span>
                   </div>
 
                   <input
                     type={field.type}
                     step={field.step}
-                    min={field.min}
-                    max={field.max}
                     placeholder={field.placeholder}
                     {...register(field.name, { required: `${field.label} is required` })}
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all"
