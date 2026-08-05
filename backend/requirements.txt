@@ -10,5 +10,7 @@ openpyxl
 psutil
 xgboost
 gunicorn
+Flask-SQLAlchemy
+psycopg2-binary
 PyJWT
 bcrypt

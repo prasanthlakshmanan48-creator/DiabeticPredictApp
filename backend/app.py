@@ -13,6 +13,9 @@ from functools import wraps
 app = Flask(__name__)
 CORS(app)
 
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 SECRET_KEY = os.environ.get('JWT_SECRET', 'diabetex_jwt_secret_key_2026_secure')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'model')
