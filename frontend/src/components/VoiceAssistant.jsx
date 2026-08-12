@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Mic, MicOff, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
@@ -93,10 +93,10 @@ const VoiceAssistant = ({ textToRead = "", onVoiceInput = null }) => {
         <button
           type="button"
           onClick={handleReadAloud}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-subtle ${
             isSpeaking
-              ? 'bg-amber-500 text-white animate-pulse'
-              : 'bg-primary-600 hover:bg-primary-700 text-white shadow-glow-primary'
+              ? 'bg-[#854F0B] text-white animate-pulse'
+              : 'bg-accent text-white dark:bg-accent-dark dark:text-bg-dark'
           }`}
           title="Read evaluation aloud"
         >
@@ -109,14 +109,14 @@ const VoiceAssistant = ({ textToRead = "", onVoiceInput = null }) => {
         <button
           type="button"
           onClick={handleVoiceInput}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm border ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-subtle border ${
             isListening
-              ? 'bg-red-500 text-white border-red-400 animate-ping'
-              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+              ? 'bg-[#A32D2D] text-white border-[#A32D2D]'
+              : 'bg-surface dark:bg-surface-dark text-text dark:text-text-dark border-border dark:border-border-dark hover:bg-bg dark:hover:bg-bg-dark'
           }`}
           title="Speak form inputs"
         >
-          {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-primary-600" />}
+          {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-accent dark:text-accent-dark" />}
           <span>{isListening ? t('listening') : t('voiceInput')}</span>
         </button>
       )}
@@ -125,3 +125,4 @@ const VoiceAssistant = ({ textToRead = "", onVoiceInput = null }) => {
 };
 
 export default VoiceAssistant;
+

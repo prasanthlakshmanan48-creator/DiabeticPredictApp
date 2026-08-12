@@ -4,9 +4,9 @@ import { Sparkles, CheckCircle2, AlertTriangle, AlertCircle, RotateCcw } from 'l
 const PresetButtons = ({ onSelectPreset, onReset }) => {
   const presets = [
     {
-      name: 'Healthy Profile',
+      name: 'Healthy Sample',
       icon: CheckCircle2,
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
+      color: 'bg-[#EAF3DE] text-[#3B6D11] border-[#3B6D11]/30 hover:opacity-90',
       data: {
         patient_name: 'Emma Watson',
         pregnancies: 1,
@@ -20,9 +20,9 @@ const PresetButtons = ({ onSelectPreset, onReset }) => {
       }
     },
     {
-      name: 'Borderline Profile',
+      name: 'Borderline Sample',
       icon: AlertTriangle,
-      color: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
+      color: 'bg-[#FAEEDA] text-[#854F0B] border-[#854F0B]/30 hover:opacity-90',
       data: {
         patient_name: 'Michael Chang',
         pregnancies: 3,
@@ -36,9 +36,9 @@ const PresetButtons = ({ onSelectPreset, onReset }) => {
       }
     },
     {
-      name: 'High Risk Profile',
+      name: 'Elevated Risk Sample',
       icon: AlertCircle,
-      color: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
+      color: 'bg-[#FCEBEB] text-[#A32D2D] border-[#A32D2D]/30 hover:opacity-90',
       data: {
         patient_name: 'Robert Davis',
         pregnancies: 6,
@@ -54,10 +54,10 @@ const PresetButtons = ({ onSelectPreset, onReset }) => {
   ];
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-      <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-        <Sparkles className="w-4 h-4 text-primary-600 dark:text-primary-400 animate-spin" style={{ animationDuration: '6s' }} />
-        <span>Quick Test Presets:</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark shadow-subtle">
+      <div className="flex items-center gap-2 text-xs font-bold text-text dark:text-text-dark">
+        <Sparkles className="w-3.5 h-3.5 text-accent dark:text-accent-dark" />
+        <span>Clinical Patient Presets:</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -68,7 +68,7 @@ const PresetButtons = ({ onSelectPreset, onReset }) => {
               key={preset.name}
               type="button"
               onClick={() => onSelectPreset(preset.data)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all shadow-sm ${preset.color}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${preset.color}`}
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{preset.name}</span>
@@ -79,7 +79,7 @@ const PresetButtons = ({ onSelectPreset, onReset }) => {
         <button
           type="button"
           onClick={onReset}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border dark:border-border-dark bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-dark-secondary hover:bg-border/20 text-xs font-semibold transition-colors"
           title="Reset Form"
         >
           <RotateCcw className="w-3.5 h-3.5" /> Clear
@@ -90,3 +90,5 @@ const PresetButtons = ({ onSelectPreset, onReset }) => {
 };
 
 export default PresetButtons;
+
+

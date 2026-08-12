@@ -8,49 +8,57 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563EB',
-          700: '#1d4ed8',
-          800: '#1e40af',
+        bg: {
+          DEFAULT: '#FAFAF9',   // light page background
+          dark: '#0B0D0F',      // dark page background with pitch sketch grid
         },
-        secondary: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          500: '#14B8A6',
-          600: '#0d9488',
-          700: '#0f766e',
+        surface: {
+          DEFAULT: '#FFFFFF',   // light card/panel background
+          dark: '#121518',      // dark frosted glass card background
         },
-        health: {
-          low: '#10B981',      // Green
-          medium: '#F59E0B',   // Amber
-          high: '#EF4444',     // Red
+        border: {
+          DEFAULT: '#E7E5E4',   // light hairline border
+          dark: 'transparent',  // dark mode — seamless zero white line borders
         },
-        dark: {
-          bg: '#0F172A',
-          card: '#1E293B',
-          border: '#334155',
-          text: '#F8FAFC',
-          muted: '#94A3B8'
-        }
+
+
+        text: {
+          DEFAULT: '#1C1B1A',       // light primary text
+          secondary: '#6B6963',     // light secondary/label text
+          dark: '#F3F4F6',          // dark primary text (crisp pencil white)
+          'dark-secondary': '#9CA3AF',
+        },
+        accent: {
+          DEFAULT: '#0F6E56',   // light mode accent — deep clinical teal
+          dark: '#5DCAA5',      // dark mode accent — vibrant glass mint
+          bg: '#E1F5EE',        // light accent-tint background
+          'bg-dark': '#0F6E5622',
+        },
+        risk: {
+          low: '#3B6D11',      lowBg: '#EAF3DE',
+          medium: '#854F0B',   mediumBg: '#FAEEDA',
+          high: '#A32D2D',     highBg: '#FCEBEB',
+        },
       },
       borderRadius: {
-        '2xl': '20px',
+        'xl': '12px',
+        '2xl': '16px',
         '3xl': '24px',
       },
       fontFamily: {
-        sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Inter', 'Outfit', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-        'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-        'glow-primary': '0 0 20px rgba(37, 99, 235, 0.35)',
-        'glow-teal': '0 0 20px rgba(20, 184, 166, 0.35)',
-        'glow-red': '0 0 20px rgba(239, 68, 68, 0.35)',
+        'subtle': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+        'card': '0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04)',
+        'neomorph-dark': '6px 6px 16px rgba(0, 0, 0, 0.6), -4px -4px 12px rgba(255, 255, 255, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
+        'neomorph-inset-dark': 'inset 3px 3px 6px rgba(0, 0, 0, 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.04)',
+        'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.12)',
       }
     },
   },
   plugins: [],
 };
+
+
+

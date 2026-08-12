@@ -17,21 +17,21 @@ const PredictionTrendChart = () => {
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-          <XAxis dataKey="day" stroke="#94A3B8" tick={{ fontSize: 12 }} />
-          <YAxis stroke="#94A3B8" tick={{ fontSize: 12 }} />
+          <XAxis dataKey="day" stroke="#9B9994" tick={{ fontSize: 12 }} />
+          <YAxis stroke="#9B9994" tick={{ fontSize: 12 }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              backgroundColor: '#181B1F',
               borderRadius: '12px',
-              border: 'none',
-              color: '#fff',
+              border: '1px solid #26292E',
+              color: '#F2F1EF',
               fontSize: '12px'
             }}
           />
           <Legend wrapperStyle={{ fontSize: '12px' }} />
-          <Line type="monotone" dataKey="total" name="Total Predictions" stroke="#2563EB" strokeWidth={3} dot={{ r: 4 }} />
-          <Line type="monotone" dataKey="nonDiabetic" name="Non-Diabetic" stroke="#10B981" strokeWidth={2.5} />
-          <Line type="monotone" dataKey="diabetic" name="Diabetic" stroke="#EF4444" strokeWidth={2.5} />
+          <Line type="monotone" dataKey="total" name="Total Predictions" stroke="#0F6E56" strokeWidth={3} dot={{ r: 4 }} />
+          <Line type="monotone" dataKey="nonDiabetic" name="Non-Diabetic" stroke="#3B6D11" strokeWidth={2.5} />
+          <Line type="monotone" dataKey="diabetic" name="Diabetic" stroke="#A32D2D" strokeWidth={2.5} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -39,3 +39,4 @@ const PredictionTrendChart = () => {
 };
 
 export default PredictionTrendChart;
+

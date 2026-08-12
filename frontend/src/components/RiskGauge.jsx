@@ -6,31 +6,32 @@ const RiskGauge = ({ percentage = 0, riskLevel = "Low Risk", confidence = "High 
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  let strokeColor = "#10B981"; // Green
-  let bgGlow = "shadow-glow-teal";
-  let statusBadgeBg = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300";
+  let strokeColor = "#3B6D11"; // risk.low
+  let statusBadgeBg = "bg-[#EAF3DE] text-[#3B6D11] border-[#3B6D11]/30";
 
   if (percentage >= 65 || outcome === 1) {
-    strokeColor = "#EF4444"; // Red
-    bgGlow = "shadow-glow-red";
-    statusBadgeBg = "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 border-red-300";
+    strokeColor = "#A32D2D"; // risk.high
+    statusBadgeBg = "bg-[#FCEBEB] text-[#A32D2D] border-[#A32D2D]/30";
   } else if (percentage >= 30) {
-    strokeColor = "#F59E0B"; // Amber
-    bgGlow = "shadow-glow-primary";
-    statusBadgeBg = "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300";
+    strokeColor = "#854F0B"; // risk.medium
+    statusBadgeBg = "bg-[#FAEEDA] text-[#854F0B] border-[#854F0B]/30";
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-6">
-      <div className="relative w-48 h-48 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center p-5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl shadow-subtle">
+      <span className="text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+        Diabetes Risk Meter
+      </span>
+
+      <div className="relative w-44 h-44 flex items-center justify-center">
         {/* SVG Circular Progress Bar */}
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
           <circle
             cx="80"
             cy="80"
             r={radius}
-            className="text-slate-100 dark:text-slate-800"
-            strokeWidth="14"
+            className="text-border dark:text-border-dark"
+            strokeWidth="12"
             stroke="currentColor"
             fill="transparent"
           />
@@ -38,13 +39,13 @@ const RiskGauge = ({ percentage = 0, riskLevel = "Low Risk", confidence = "High 
             cx="80"
             cy="80"
             r={radius}
-            strokeWidth="14"
+            strokeWidth="12"
             stroke={strokeColor}
             fill="transparent"
             strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
             strokeLinecap="round"
           />
         </svg>
@@ -52,26 +53,26 @@ const RiskGauge = ({ percentage = 0, riskLevel = "Low Risk", confidence = "High 
         {/* Center Percentage Display */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
           <motion.span 
-            className="text-4xl font-extrabold tracking-tight text-slate-800 dark:text-white"
-            initial={{ scale: 0.5, opacity: 0 }}
+            className="text-3xl font-extrabold tracking-tight text-text dark:text-text-dark"
+            initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2 }}
           >
             {percentage}%
           </motion.span>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-1">
-            Diabetes Probability
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            Probability
           </span>
         </div>
       </div>
 
       {/* Dynamic Status Pill */}
-      <div className="mt-4 flex flex-col items-center gap-2">
-        <span className={`px-4 py-1.5 rounded-full text-xs font-bold border ${statusBadgeBg} shadow-sm uppercase tracking-wide`}>
-          {riskLevel} • {outcome === 1 ? 'High Risk Diabetic' : 'Low Risk Non-Diabetic'}
+      <div className="mt-3 flex flex-col items-center gap-1.5 text-center">
+        <span className={`px-3 py-1 rounded-lg text-xs font-extrabold border ${statusBadgeBg} tracking-tight`}>
+          {riskLevel} • {outcome === 1 ? 'Elevated Risk' : 'Normal Range'}
         </span>
-        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-          Model Confidence: <strong className="text-slate-700 dark:text-slate-200">{confidence}</strong>
+        <span className="text-[11px] font-medium text-text-secondary dark:text-text-dark-secondary">
+          Confidence: <strong className="text-text dark:text-text-dark">{confidence}</strong>
         </span>
       </div>
     </div>
@@ -79,3 +80,5 @@ const RiskGauge = ({ percentage = 0, riskLevel = "Low Risk", confidence = "High 
 };
 
 export default RiskGauge;
+
+

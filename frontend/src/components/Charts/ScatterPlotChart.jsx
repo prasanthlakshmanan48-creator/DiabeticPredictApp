@@ -32,21 +32,21 @@ const ScatterPlotChart = () => {
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-          <XAxis type="number" dataKey="bmi" name="BMI (kg/m²)" unit=" kg/m²" stroke="#94A3B8" tick={{ fontSize: 11 }} />
-          <YAxis type="number" dataKey="glucose" name="Glucose (mg/dL)" unit=" mg/dL" stroke="#94A3B8" tick={{ fontSize: 11 }} />
+          <XAxis type="number" dataKey="bmi" name="BMI (kg/m²)" unit=" kg/m²" stroke="#9B9994" tick={{ fontSize: 11 }} />
+          <YAxis type="number" dataKey="glucose" name="Glucose (mg/dL)" unit=" mg/dL" stroke="#9B9994" tick={{ fontSize: 11 }} />
           <Tooltip
             cursor={{ strokeDasharray: '3 3' }}
             contentStyle={{
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              backgroundColor: '#181B1F',
               borderRadius: '12px',
-              border: 'none',
-              color: '#fff',
+              border: '1px solid #26292E',
+              color: '#F2F1EF',
               fontSize: '12px'
             }}
           />
           <Legend wrapperStyle={{ fontSize: '12px' }} />
-          <Scatter name="Non-Diabetic" data={nonDiabeticPoints} fill="#10B981" shape="circle" />
-          <Scatter name="Diabetic" data={diabeticPoints} fill="#EF4444" shape="triangle" />
+          <Scatter name="Non-Diabetic" data={nonDiabeticPoints} fill="#3B6D11" shape="circle" />
+          <Scatter name="Diabetic" data={diabeticPoints} fill="#A32D2D" shape="triangle" />
         </ScatterChart>
       </ResponsiveContainer>
     </div>
@@ -54,3 +54,4 @@ const ScatterPlotChart = () => {
 };
 
 export default ScatterPlotChart;
+

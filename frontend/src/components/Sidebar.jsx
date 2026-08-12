@@ -9,7 +9,8 @@ import {
   Info, 
   Settings, 
   Sparkles,
-  Home
+  Home,
+  ShieldCheck
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -18,7 +19,7 @@ const Sidebar = () => {
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Prediction', path: '/prediction', icon: Stethoscope, badge: 'AI Model' },
+    { name: 'Prediction', path: '/prediction', icon: Stethoscope, badge: 'ML Model' },
     { name: 'Reports', path: '/reports', icon: FileText },
     { name: 'History', path: '/history', icon: History },
     { name: 'Analytics', path: '/analytics', icon: BarChart3 },
@@ -28,14 +29,15 @@ const Sidebar = () => {
 
   return (
     <aside className="w-64 flex-shrink-0 hidden md:block">
-      <div className="sticky top-20 p-4 space-y-6">
+      <div className="sticky top-20 p-4 space-y-5">
         {/* Navigation Section Card */}
-        <div className="bg-white/80 dark:bg-dark-card/80 backdrop-blur-md border border-slate-200/80 dark:border-dark-border rounded-2xl p-3.5 shadow-glass dark:shadow-glass-dark">
-          <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Clinical Modules
+        <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-3 shadow-subtle">
+          <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary flex items-center justify-between">
+            <span>Clinical Modules</span>
+            <ShieldCheck className="w-3.5 h-3.5" />
           </div>
           
-          <nav className="space-y-1.5 mt-1">
+          <nav className="space-y-1 mt-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -43,43 +45,54 @@ const Sidebar = () => {
                   key={item.name}
                   to={item.path}
                   className={({ isActive }) =>
-                    `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all duration-200 ${
+                    `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-xs transition-all duration-150 relative ${
                       isActive
-                        ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-glow-primary'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-primary-600 dark:hover:text-primary-400'
+                        ? 'bg-accent-bg text-accent dark:bg-accent/15 dark:text-accent-dark font-bold'
+                        : 'text-text-secondary dark:text-text-dark-secondary hover:bg-bg dark:hover:bg-white/5 hover:text-text dark:hover:text-text-dark'
                     }`
                   }
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="px-2 py-0.5 text-[9px] font-semibold bg-secondary-500/20 text-secondary-600 dark:text-secondary-400 rounded-full border border-secondary-500/30 flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5" /> {item.badge}
-                    </span>
+                  {({ isActive }) => (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-accent dark:text-accent-dark' : 'text-text-secondary dark:text-text-dark-secondary'}`} />
+                        <span>{item.name}</span>
+                      </div>
+                      {item.badge && (
+                        <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md ${
+                          isActive 
+                            ? 'bg-accent text-white dark:bg-accent-dark dark:text-bg-dark'
+                            : 'bg-bg text-text-secondary dark:bg-white/10 dark:text-text-dark-secondary'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </>
                   )}
                 </NavLink>
+
               );
             })}
           </nav>
         </div>
 
-        {/* Quick Assistant Promo Banner */}
-        <div className="bg-gradient-to-br from-primary-600 to-secondary-600 rounded-2xl p-4 text-white shadow-glow-primary relative overflow-hidden">
-          <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+        {/* Executive Clinical Assistant Card */}
+        <div className="bg-surface dark:bg-surface-dark rounded-2xl p-4 border border-border dark:border-border-dark shadow-subtle relative overflow-hidden">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <h4 className="font-bold text-xs">AI Assistant Mode</h4>
+            <div className="w-6 h-6 rounded-lg bg-accent-bg dark:bg-accent-bg-dark text-accent dark:text-accent-dark flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="font-bold text-xs text-text dark:text-text-dark">Diagnostic Suite</h4>
           </div>
-          <p className="text-[11px] text-blue-100 leading-relaxed mb-3">
-            Real-time multi-variable diabetes risk scoring powered by Scikit-Learn.
+          <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary leading-relaxed mb-3">
+            Realtime 8-biometric clinical risk evaluation engine.
           </p>
           <button
             onClick={() => navigate('/prediction')}
-            className="w-full py-1.5 px-3 bg-white text-primary-700 hover:bg-blue-50 rounded-xl text-[11px] font-bold transition-colors shadow-sm"
+            className="w-full py-2 px-3 bg-accent hover:opacity-95 text-white dark:bg-accent-dark dark:text-bg-dark rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
           >
-            New Screening
+            <Stethoscope className="w-3.5 h-3.5" />
+            <span>New Patient Screening</span>
           </button>
         </div>
       </div>
@@ -88,3 +101,5 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
+

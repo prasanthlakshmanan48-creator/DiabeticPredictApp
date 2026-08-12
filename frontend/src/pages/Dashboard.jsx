@@ -38,17 +38,17 @@ const Dashboard = () => {
   }, []);
 
   const pieData = [
-    { name: 'Non-Diabetic', value: stats.non_diabetic_count || 515, color: '#10B981' },
-    { name: 'Diabetic', value: stats.diabetic_count || 285, color: '#EF4444' }
+    { name: 'Non-Diabetic', value: stats.non_diabetic_count || 515, color: '#3B6D11' },
+    { name: 'Diabetic', value: stats.diabetic_count || 285, color: '#A32D2D' }
   ];
 
   const kpis = [
-    { title: 'Total Patients Tested', value: stats.total_predictions, icon: Users, color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40' },
-    { title: 'Diabetic Patients', value: stats.diabetic_count, icon: UserX, color: 'text-red-600 bg-red-50 dark:bg-red-950/40' },
-    { title: 'Non-Diabetic Patients', value: stats.non_diabetic_count, icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' },
-    { title: 'Average Glucose', value: `${stats.avg_glucose} mg/dL`, icon: Activity, color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40' },
-    { title: 'Average BMI', value: `${stats.avg_bmi} kg/m²`, icon: Scale, color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40' },
-    { title: 'Average Patient Age', value: `${stats.avg_age} yrs`, icon: Calendar, color: 'text-teal-600 bg-teal-50 dark:bg-teal-950/40' }
+    { title: 'Total Evaluated Patients', value: stats.total_predictions, icon: Users },
+    { title: 'Elevated Risk Cases', value: stats.diabetic_count, icon: UserX },
+    { title: 'Normal Risk Cases', value: stats.non_diabetic_count, icon: UserCheck },
+    { title: 'Mean Fasting Glucose', value: `${stats.avg_glucose} mg/dL`, icon: Activity },
+    { title: 'Mean Body Mass Index', value: `${stats.avg_bmi} kg/m²`, icon: Scale },
+    { title: 'Mean Cohort Age', value: `${stats.avg_age} yrs`, icon: Calendar }
   ];
 
   return (
@@ -56,17 +56,17 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">
+          <h1 className="text-2xl font-extrabold text-text dark:text-text-dark">
             Clinical Executive Dashboard
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
             Realtime epidemiological statistics, metric distributions, and risk trends.
           </p>
         </div>
 
         <button
           onClick={loadData}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors shadow-sm self-start sm:self-auto"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs font-semibold text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors shadow-subtle self-start sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh Data</span>
@@ -80,15 +80,15 @@ const Dashboard = () => {
           return (
             <div
               key={kpi.title}
-              className="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-4 shadow-glass dark:shadow-glass-dark"
+              className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-4 shadow-subtle"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-tight">{kpi.title}</span>
-                <div className={`p-2 rounded-xl ${kpi.color}`}>
-                  <Icon className="w-4 h-4" />
+                <span className="text-[11px] font-semibold text-text-secondary dark:text-text-dark-secondary leading-tight">{kpi.title}</span>
+                <div className="p-1.5 rounded-lg bg-accent-bg dark:bg-accent-bg-dark text-accent dark:text-accent-dark">
+                  <Icon className="w-3.5 h-3.5" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-slate-800 dark:text-white mt-1">
+              <div className="text-xl font-extrabold text-text dark:text-text-dark mt-1 tracking-tight">
                 {kpi.value}
               </div>
             </div>
@@ -99,25 +99,25 @@ const Dashboard = () => {
       {/* Row 1 Charts: Bar Chart & Pie Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Bar Chart: Outcome Count */}
-        <div className="lg:col-span-7 bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+        <div className="lg:col-span-7 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Outcome Count Breakdown</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Total Classified Cases (Non-Diabetic vs Diabetic)</p>
+              <h3 className="font-bold text-sm text-text dark:text-text-dark">Outcome Count Breakdown</h3>
+              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Total Classified Cases (Non-Diabetic vs Diabetic)</p>
             </div>
-            <span className="px-2.5 py-1 text-[10px] font-bold bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400 rounded-full border border-primary-200 dark:border-primary-800">
-              PIMA Sample
+            <span className="px-2.5 py-1 text-[10px] font-bold bg-accent-bg text-accent dark:bg-accent-bg-dark dark:text-accent-dark rounded-md border border-accent/20 dark:border-accent-dark/20">
+              PIMA Benchmark Sample
             </span>
           </div>
           <OutcomeBarChart diabeticCount={stats.diabetic_count} nonDiabeticCount={stats.non_diabetic_count} />
         </div>
 
         {/* Pie Chart: Diabetic Ratio */}
-        <div className="lg:col-span-5 bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+        <div className="lg:col-span-5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Diabetic Prevalence Ratio</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Percentage distribution of positive vs negative cases</p>
+              <h3 className="font-bold text-sm text-text dark:text-text-dark">Diabetic Prevalence Ratio</h3>
+              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Percentage distribution of positive vs negative cases</p>
             </div>
           </div>
           <div className="w-full h-64 flex items-center justify-center">
@@ -138,10 +138,10 @@ const Dashboard = () => {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    backgroundColor: '#181B1F',
                     borderRadius: '12px',
-                    border: 'none',
-                    color: '#fff',
+                    border: '1px solid #26292E',
+                    color: '#F2F1EF',
                     fontSize: '12px'
                   }}
                 />
@@ -153,11 +153,11 @@ const Dashboard = () => {
       </div>
 
       {/* Row 2 Charts: Histograms (Age, BMI, Glucose) */}
-      <div className="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+      <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold text-sm text-slate-800 dark:text-white">Feature Distribution Histograms</h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Switch between Age, BMI, and Glucose parameter distributions</p>
+            <h3 className="font-bold text-sm text-text dark:text-text-dark">Feature Distribution Histograms</h3>
+            <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Switch between Age, BMI, and Glucose parameter distributions</p>
           </div>
         </div>
         <DistributionCharts />
@@ -166,22 +166,22 @@ const Dashboard = () => {
       {/* Row 3 Charts: Scatter Plot & Line Chart Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Scatter Plot: BMI vs Glucose */}
-        <div className="lg:col-span-6 bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+        <div className="lg:col-span-6 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Scatter Plot: BMI vs Glucose</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Biometric correlation colored by diagnosis outcome</p>
+              <h3 className="font-bold text-sm text-text dark:text-text-dark">Scatter Plot: BMI vs Glucose</h3>
+              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Biometric correlation colored by diagnosis outcome</p>
             </div>
           </div>
           <ScatterPlotChart />
         </div>
 
         {/* Line Chart: Prediction Trends */}
-        <div className="lg:col-span-6 bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+        <div className="lg:col-span-6 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Weekly Prediction Volume Trends</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Daily evaluation counts logged in SQLite database</p>
+              <h3 className="font-bold text-sm text-text dark:text-text-dark">Weekly Prediction Volume Trends</h3>
+              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Daily evaluation counts logged in SQLite database</p>
             </div>
           </div>
           <PredictionTrendChart />
@@ -192,3 +192,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+

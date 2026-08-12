@@ -19,7 +19,7 @@ const FeatureImportance = ({ features = [] }) => {
     importancePercentage: (item.importance * 100).toFixed(1)
   }));
 
-  const colors = ['#2563EB', '#14B8A6', '#3B82F6', '#0D9488', '#60A5FA', '#2DD4BF', '#93C5FD', '#99F6E4'];
+  const colors = ['#0F6E56', '#148869', '#1C9E7B', '#27B38D', '#3BC8A0', '#5DCAA5', '#80D7B9', '#A6E5CE'];
 
   return (
     <div className="w-full h-80">
@@ -29,15 +29,15 @@ const FeatureImportance = ({ features = [] }) => {
           data={formattedData}
           margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
         >
-          <XAxis type="number" domain={[0, 40]} unit="%" stroke="#94A3B8" tick={{ fontSize: 11 }} />
-          <YAxis type="category" dataKey="feature" stroke="#94A3B8" tick={{ fontSize: 11 }} />
+          <XAxis type="number" domain={[0, 40]} unit="%" stroke="#9B9994" tick={{ fontSize: 11 }} />
+          <YAxis type="category" dataKey="feature" stroke="#9B9994" tick={{ fontSize: 11 }} />
           <Tooltip
             formatter={(value) => [`${value}%`, 'Importance Weight']}
             contentStyle={{
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              backgroundColor: '#181B1F',
               borderRadius: '12px',
-              border: 'none',
-              color: '#fff',
+              border: '1px solid #26292E',
+              color: '#F2F1EF',
               fontSize: '12px'
             }}
           />
@@ -53,3 +53,4 @@ const FeatureImportance = ({ features = [] }) => {
 };
 
 export default FeatureImportance;
+

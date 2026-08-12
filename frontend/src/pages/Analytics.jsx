@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getModelInfo } from '../services/api';
 import ConfusionMatrix from '../components/ConfusionMatrix';
 import FeatureImportance from '../components/FeatureImportance';
-import { BarChart3, Cpu, Sparkles, CheckCircle2, Award, Zap, RefreshCw } from 'lucide-react';
+import { BarChart3, Cpu, CheckCircle2, Award, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Analytics = () => {
@@ -56,18 +56,18 @@ const Analytics = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2.5">
-            <BarChart3 className="w-7 h-7 text-primary-600" />
+          <h1 className="text-2xl font-extrabold text-text dark:text-text-dark flex items-center gap-2.5">
+            <BarChart3 className="w-7 h-7 text-accent dark:text-accent-dark" />
             <span>Algorithm Evaluation & Analytics</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
             Comparative performance matrix of Random Forest vs Logistic Regression on PIMA dataset.
           </p>
         </div>
 
         <button
           onClick={fetchMetrics}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors shadow-sm self-start sm:self-auto"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs font-semibold text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors shadow-subtle self-start sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Reload Benchmarks</span>
@@ -75,46 +75,46 @@ const Analytics = () => {
       </div>
 
       {/* Top Winner Card */}
-      <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-600 rounded-3xl p-6 lg:p-8 text-white shadow-glow-primary relative overflow-hidden">
+      <div className="bg-surface dark:bg-surface-dark rounded-3xl p-6 lg:p-8 text-text dark:text-text-dark shadow-subtle border border-border dark:border-border-dark relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-xs font-bold border border-white/30">
-              <Award className="w-4 h-4 text-amber-300" /> Best Performing Algorithm
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-accent-bg dark:bg-accent-bg-dark text-xs font-bold text-accent dark:text-accent-dark border border-accent/20 dark:border-accent-dark/20">
+              <Award className="w-4 h-4" /> Leading Algorithm Model
             </div>
-            <h2 className="text-2xl lg:text-3xl font-extrabold">
+            <h2 className="text-2xl lg:text-3xl font-extrabold text-text dark:text-text-dark">
               Random Forest Classifier (120 Estimators)
             </h2>
-            <p className="text-xs text-blue-100 max-w-xl">
+            <p className="text-xs text-text-secondary dark:text-text-dark-secondary max-w-xl">
               Outperforms Logistic Regression by +7.5% in overall Accuracy and delivers an impressive 93.4% ROC-AUC diagnostic curve score.
             </p>
           </div>
 
-          <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/20 backdrop-blur-md">
+          <div className="flex items-center gap-4 bg-bg dark:bg-bg-dark p-4 rounded-2xl border border-border dark:border-border-dark">
             <div className="text-center">
-              <span className="text-3xl font-black">{(rf.accuracy * 100).toFixed(1)}%</span>
-              <p className="text-[10px] text-blue-200 uppercase font-semibold">Accuracy</p>
+              <span className="text-3xl font-black text-text dark:text-text-dark">{(rf.accuracy * 100).toFixed(1)}%</span>
+              <p className="text-[10px] text-text-secondary dark:text-text-dark-secondary uppercase font-bold">Accuracy</p>
             </div>
-            <div className="h-10 w-px bg-white/20"></div>
+            <div className="h-10 w-px bg-border dark:bg-border-dark"></div>
             <div className="text-center">
-              <span className="text-3xl font-black text-amber-300">{(rf.roc_auc * 100).toFixed(1)}%</span>
-              <p className="text-[10px] text-blue-200 uppercase font-semibold">ROC AUC</p>
+              <span className="text-3xl font-black text-accent dark:text-accent-dark">{(rf.roc_auc * 100).toFixed(1)}%</span>
+              <p className="text-[10px] text-text-secondary dark:text-text-dark-secondary uppercase font-bold">ROC AUC</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Comparison Matrix Table */}
-      <div className="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+      <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-primary-600" />
+          <h3 className="font-bold text-sm text-text dark:text-text-dark flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-accent dark:text-accent-dark" />
             <span>Algorithm Performance Benchmark Comparison</span>
           </h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+            <thead className="bg-bg dark:bg-bg-dark text-text dark:text-text-dark font-bold border-b border-border dark:border-border-dark">
               <tr>
                 <th className="p-3.5">Performance Metric</th>
                 <th className="p-3.5">Random Forest (Selected)</th>
@@ -123,16 +123,16 @@ const Analytics = () => {
                 <th className="p-3.5">Winning Model</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+            <tbody className="divide-y divide-border dark:divide-border-dark text-text-secondary dark:text-text-dark-secondary">
               {comparisonRows.map((row) => (
-                <tr key={row.metric} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                  <td className="p-3.5 font-bold">{row.metric}</td>
-                  <td className="p-3.5 font-extrabold text-primary-600 dark:text-primary-400">{row.rf}</td>
-                  <td className="p-3.5 font-semibold text-slate-500">{row.lr}</td>
-                  <td className="p-3.5 font-bold text-emerald-600 dark:text-emerald-400">{row.diff}</td>
+                <tr key={row.metric} className="hover:bg-bg dark:hover:bg-bg-dark">
+                  <td className="p-3.5 font-bold text-text dark:text-text-dark">{row.metric}</td>
+                  <td className="p-3.5 font-extrabold text-accent dark:text-accent-dark">{row.rf}</td>
+                  <td className="p-3.5 font-semibold opacity-70">{row.lr}</td>
+                  <td className="p-3.5 font-bold text-accent dark:text-accent-dark">{row.diff}</td>
                   <td className="p-3.5">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 border border-primary-200 dark:border-primary-800 flex items-center gap-1 w-max">
-                      <CheckCircle2 className="w-3 h-3" /> {row.winner}
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-accent-bg text-accent dark:bg-accent-bg-dark dark:text-accent-dark border border-accent/20 dark:border-accent-dark/20 flex items-center gap-1 w-max">
+                      <CheckCircle2 className="w-3 h-3 text-accent dark:text-accent-dark" /> {row.winner}
                     </span>
                   </td>
                 </tr>
@@ -145,16 +145,16 @@ const Analytics = () => {
       {/* Row 2: Confusion Matrix & Feature Importances */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Confusion Matrix */}
-        <div className="lg:col-span-6 bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+        <div className="lg:col-span-6 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
           <ConfusionMatrix matrix={rf.confusion_matrix} modelName="Random Forest Classifier" />
         </div>
 
         {/* Feature Importance Bar Chart */}
-        <div className="lg:col-span-6 bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl p-6 shadow-glass dark:shadow-glass-dark">
+        <div className="lg:col-span-6 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Feature Importance Weights</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Random Forest Gini Impurity reduction ratios</p>
+              <h3 className="font-bold text-sm text-text dark:text-text-dark">Feature Importance Weights</h3>
+              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Random Forest Gini Impurity reduction ratios</p>
             </div>
           </div>
           <FeatureImportance features={modelData?.feature_importances} />
@@ -165,3 +165,5 @@ const Analytics = () => {
 };
 
 export default Analytics;
+
+
