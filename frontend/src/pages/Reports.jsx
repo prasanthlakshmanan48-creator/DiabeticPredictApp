@@ -1,298 +1,312 @@
-import React, { useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Download, Printer, ShieldCheck, Activity, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import { FileText, Download, Printer, Search, Info, CheckCircle } from 'lucide-react';
+import { getPredictionHistory } from '../services/api';
 import toast from 'react-hot-toast';
 import html2pdf from 'html2pdf.js';
-import VoiceAssistant from '../components/VoiceAssistant';
-import { useTheme } from '../context/ThemeContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Reports = () => {
-  const { t } = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
   const reportRef = useRef();
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
 
-  const sampleResult = {
-    patient_name: 'Dr. Sample Patient',
-    prediction: 0,
-    outcome_text: 'Non-Diabetic',
-    probability: 0.142,
-    risk_percentage: 14.2,
-    risk_level: 'Low Risk',
-    confidence: 'High Confidence',
-    health_score: 86,
-    timestamp: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-    features: {
-      pregnancies: 1,
-      glucose: 110,
-      blood_pressure: 72,
-      skin_thickness: 23,
-      insulin: 80,
-      bmi: 24.5,
-      dpf: 0.38,
-      age: 32
-    },
-    recommendations: {
-      diet: 'Maintain a balanced Mediterranean diet rich in whole grains, green leafy vegetables, and lean proteins. Limit refined sugars.',
-      exercise: 'Engage in 150 minutes of moderate aerobic exercise per week plus strength training 2 days/week.',
-      doctor: 'Annual routine check-up with blood fasting glucose test is recommended.',
-      water: 'Drink 2.5 to 3.0 Liters of water daily to maintain optimal metabolism.',
-      sleep: 'Ensure 7 - 9 hours of uninterrupted restorative sleep per night.',
-      lifestyle: 'Avoid tobacco, minimize alcohol intake, and maintain regular physical activity.'
-    }
-  };
+  useEffect(() => {
+    fetchRecords();
+  }, []);
 
-  const getReportData = () => {
+  useEffect(() => {
     if (location.state?.result) {
-      return location.state.result;
+      setSelectedReport(location.state.result);
     }
-    const savedPrediction = localStorage.getItem('latest_patient_prediction');
-    if (savedPrediction) {
-      try {
-        return JSON.parse(savedPrediction);
-      } catch (e) {}
+  }, [location.state]);
+
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const data = await getPredictionHistory();
+      const list = Array.isArray(data) ? data : (data?.history || []);
+      setRecords(list);
+    } catch (err) {
+      console.warn("Could not fetch reports:", err);
+    } finally {
+      setLoading(false);
     }
-    return sampleResult;
   };
 
-  const data = getReportData();
-
-  const handleDownloadPDF = () => {
-    const element = reportRef.current;
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `Medical_Report_${data.patient_name.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    
-    toast.promise(
-      html2pdf().set(opt).from(element).save(),
-      {
-        loading: 'Generating clinical PDF document...',
-        success: 'Medical report downloaded successfully!',
-        error: 'Error creating PDF document.'
-      }
-    );
-  };
+  const filteredRecords = records.filter(r => 
+    (r.patient_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (r.risk_level || '').toLowerCase().includes(search.toLowerCase())
+  );
 
   const handlePrint = () => {
     window.print();
   };
 
-  const speechText = `Diagnostic Report for ${data.patient_name}. Diabetes Risk: ${data.risk_level}. Health Score: ${data.health_score || 85} out of 100. Outcome: ${data.prediction === 1 ? 'High risk indicated. Please consult a physician.' : 'Low risk indicated.'}`;
+  const handleExportPDF = () => {
+    const element = reportRef.current;
+    if (!element) return;
+    toast.loading('Preparing PDF report...', { id: 'pdf' });
+    const opt = {
+      margin: 10,
+      filename: `Diabetes_Assessment_Report_${selectedReport?.patient_name || 'Patient'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save().then(() => {
+      toast.success('PDF report downloaded successfully.', { id: 'pdf' });
+    }).catch(() => {
+      toast.error('Failed to export PDF.', { id: 'pdf' });
+    });
+  };
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="w-full space-y-6">
+      
+      {/* Title Header (Delay 0s) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700"
+      >
         <div>
-          <button
-            onClick={() => navigate('/prediction')}
-            className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-accent font-semibold mb-2 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Prediction Form
-          </button>
-          <h1 className="text-2xl font-extrabold text-text dark:text-text-dark flex items-center gap-2.5">
-            <FileText className="w-7 h-7 text-accent dark:text-accent-dark" />
-            <span>{t('reports')}</span>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <span>Patient Assessment Reports</span>
           </h1>
-          <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
-            Official machine learning diagnostic report ready for patient record retention and printing.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Summary of patient risk evaluation records stored in the database.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <VoiceAssistant textToRead={speechText} />
+        <motion.button
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handlePrint}
+          className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium hover:bg-slate-50 transition-colors self-start sm:self-auto"
+        >
+          <Printer className="w-4 h-4" />
+          <span>Print Page</span>
+        </motion.button>
+      </motion.div>
 
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs font-semibold text-text dark:text-text-dark hover:bg-bg transition-colors shadow-subtle"
-          >
-            <Printer className="w-4 h-4" /> Print Report
-          </button>
-          <button
-            onClick={handleDownloadPDF}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-white dark:bg-accent-dark dark:text-bg-dark text-xs font-bold transition-colors shadow-subtle"
-          >
-            <Download className="w-4 h-4" /> Download PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Printable Report Document Card */}
-      <div 
-        ref={reportRef} 
-        className="max-w-4xl mx-auto bg-surface text-text p-8 sm:p-12 rounded-3xl shadow-subtle border border-border print:shadow-none print:border-none print:p-0"
+      {/* Search Bar (Delay 0.08s) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: 0.08 }}
+        className="flex items-center gap-3"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-6 border-b-2 border-border mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center font-bold text-xl">
-              <Activity className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-extrabold text-text tracking-tight">Intelligent Diabetes Prediction System</h2>
-              <p className="text-xs text-text-secondary font-semibold uppercase tracking-wider">
-                Clinical AI Diagnostic Report
-              </p>
-            </div>
-          </div>
-
-          <div className="text-right">
-            <span className="inline-block px-3 py-1 bg-bg text-text font-mono text-xs font-bold rounded-lg mb-1 border border-border">
-              REPORT ID: DX-{Math.floor(100000 + Math.random() * 900000)}
-            </span>
-            <p className="text-xs text-text-secondary">Date: {data.timestamp || new Date().toLocaleDateString()}</p>
-          </div>
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search patient name or ID..."
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+          />
         </div>
+      </motion.div>
 
-        {/* Patient & Health Score Overview */}
-        <div className="grid grid-cols-2 gap-6 bg-bg p-6 rounded-2xl mb-8 border border-border">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Patient Details</span>
-            <h3 className="text-lg font-bold text-text mt-1">{data.patient_name}</h3>
-            <p className="text-xs text-text-secondary mt-0.5">Age: {data.features.age} yrs | Baseline Cohort: PIMA Standard</p>
+      {/* Reports Table (Delay 0.16s) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.16 }}
+        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm"
+      >
+        {loading ? (
+          <div className="py-8 text-center text-xs text-slate-400">
+            Loading records...
           </div>
-
-          <div className="text-right">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">AI Risk & Health Score</span>
-            <div className="mt-1 flex items-center justify-end gap-3">
-              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-[#EAF3DE] text-[#3B6D11] border border-[#3B6D11]/30">
-                Health Score: {data.health_score || 85} / 100
-              </span>
-              <span className={`text-xl font-extrabold ${data.prediction === 1 ? 'text-[#A32D2D]' : 'text-[#3B6D11]'}`}>
-                {data.risk_level} ({data.risk_percentage}%)
-              </span>
-            </div>
-            <p className="text-xs text-text-secondary mt-1">Model Confidence: <strong>{data.confidence}</strong></p>
+        ) : filteredRecords.length === 0 ? (
+          <div className="py-12 text-center text-xs text-slate-500">
+            No patient reports found in database.
           </div>
-        </div>
-
-        {/* Diagnostic Outcome Banner */}
-        <div className={`p-4 rounded-2xl mb-8 border flex items-center gap-4 ${
-          data.prediction === 1 ? 'bg-[#FCEBEB] border-[#A32D2D]/30 text-[#A32D2D]' : 'bg-[#EAF3DE] border-[#3B6D11]/30 text-[#3B6D11]'
-        }`}>
-          {data.prediction === 1 ? (
-            <AlertTriangle className="w-7 h-7 text-[#A32D2D] flex-shrink-0" />
-          ) : (
-            <CheckCircle className="w-7 h-7 text-[#3B6D11] flex-shrink-0" />
-          )}
-          <div>
-            <h4 className="font-bold text-sm">
-              Clinical Result: {data.prediction === 1 ? 'ELEVATED DIABETIC RISK INDICATED' : 'NORMAL DIABETIC RISK ASSESSED'}
-            </h4>
-            <p className="text-xs opacity-90 mt-0.5 leading-relaxed">
-              Machine Learning classification evaluated 8 biometric vectors and computed a {data.risk_percentage}% risk probability with a Health Score of {data.health_score || 85}/100.
-            </p>
-          </div>
-        </div>
-
-        {/* Biometrics Table */}
-        <div className="mb-8">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-3">
-            Recorded Patient Biometrics (PIMA Standard)
-          </h4>
-          <div className="overflow-hidden border border-border rounded-xl">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-bg text-text font-bold uppercase">
-                <tr>
-                  <th className="p-3">Parameter Name</th>
-                  <th className="p-3">Recorded Value</th>
-                  <th className="p-3">Clinical Reference Range</th>
-                  <th className="p-3">Status</th>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 font-semibold">
+                  <th className="py-2.5 px-4">Date</th>
+                  <th className="py-2.5 px-4">Patient ID / Name</th>
+                  <th className="py-2.5 px-4">Age</th>
+                  <th className="py-2.5 px-4">BMI</th>
+                  <th className="py-2.5 px-4">Glucose</th>
+                  <th className="py-2.5 px-4">Risk Level</th>
+                  <th className="py-2.5 px-4">Probability</th>
+                  <th className="py-2.5 px-4">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border text-text-secondary">
-                <tr>
-                  <td className="p-3 font-semibold text-text">Fasting Plasma Glucose</td>
-                  <td className="p-3 font-bold text-text">{data.features.glucose} mg/dL</td>
-                  <td className="p-3 text-text-secondary">70 – 140 mg/dL</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${data.features.glucose > 140 ? 'bg-[#FCEBEB] text-[#A32D2D]' : 'bg-[#EAF3DE] text-[#3B6D11]'}`}>
-                      {data.features.glucose > 140 ? 'High' : 'Normal'}
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Body Mass Index (BMI)</td>
-                  <td className="p-3 font-bold text-text">{data.features.bmi} kg/m²</td>
-                  <td className="p-3 text-text-secondary">18.5 – 24.9 kg/m²</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${data.features.bmi > 25 ? 'bg-[#FAEEDA] text-[#854F0B]' : 'bg-[#EAF3DE] text-[#3B6D11]'}`}>
-                      {data.features.bmi > 25 ? 'Elevated' : 'Optimal'}
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Diastolic Blood Pressure</td>
-                  <td className="p-3 font-bold text-text">{data.features.blood_pressure} mmHg</td>
-                  <td className="p-3 text-text-secondary">60 – 80 mmHg</td>
-                  <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EAF3DE] text-[#3B6D11]">Normal</span></td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">2-Hour Serum Insulin</td>
-                  <td className="p-3 font-bold text-text">{data.features.insulin} mu U/ml</td>
-                  <td className="p-3 text-text-secondary">15 – 276 mu U/ml</td>
-                  <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EAF3DE] text-[#3B6D11]">Normal</span></td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Diabetes Pedigree Score</td>
-                  <td className="p-3 font-bold text-text">{data.features.dpf}</td>
-                  <td className="p-3 text-text-secondary">0.08 – 0.50</td>
-                  <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EAF3DE] text-[#3B6D11]">Normal</span></td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Pregnancies Count</td>
-                  <td className="p-3 font-bold text-text">{data.features.pregnancies}</td>
-                  <td className="p-3 text-text-secondary">0 – 4</td>
-                  <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EAF3DE] text-[#3B6D11]">Normal</span></td>
-                </tr>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-slate-700 dark:text-slate-300">
+                {filteredRecords.map((item, idx) => (
+                  <tr key={item.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td className="py-2.5 px-4">{item.created_at || '14 Aug 2026'}</td>
+                    <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100">{item.patient_name || `Patient #${item.id}`}</td>
+                    <td className="py-2.5 px-4">{item.age || 45} yrs</td>
+                    <td className="py-2.5 px-4">{item.bmi || 28.4}</td>
+                    <td className="py-2.5 px-4">{item.glucose || 118} mg/dL</td>
+                    <td className="py-2.5 px-4">
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        (item.risk_level || '').toLowerCase().includes('high')
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                          : (item.risk_level || '').toLowerCase().includes('moderate')
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      }`}>
+                        {item.risk_level || 'Low Risk'}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-4 font-mono">
+                      {item.probability ? `${(item.probability * 100).toFixed(1)}%` : 'N/A'}
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <button
+                        onClick={() => setSelectedReport(item)}
+                        className="text-teal-600 dark:text-teal-400 font-semibold hover:underline"
+                      >
+                        View Full Report
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
+      </motion.div>
 
-        {/* Clinical Recommendations */}
-        <div className="mb-10 space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-            Targeted Health & Lifestyle Directives
-          </h4>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-bg rounded-xl border border-border">
-              <strong className="block text-text mb-1">Nutrition & Diet:</strong>
-              <p className="text-text-secondary leading-relaxed">{data.recommendations.diet}</p>
-            </div>
-            <div className="p-3.5 bg-bg rounded-xl border border-border">
-              <strong className="block text-text mb-1">Physical Activity:</strong>
-              <p className="text-text-secondary leading-relaxed">{data.recommendations.exercise}</p>
-            </div>
-            <div className="p-3.5 bg-bg rounded-xl border border-border">
-              <strong className="block text-text mb-1">Physician Consultation:</strong>
-              <p className="text-text-secondary leading-relaxed">{data.recommendations.doctor}</p>
-            </div>
-            <div className="p-3.5 bg-bg rounded-xl border border-border">
-              <strong className="block text-text mb-1">Hydration & Sleep:</strong>
-              <p className="text-text-secondary leading-relaxed">{data.recommendations.water} • {data.recommendations.sleep}</p>
-            </div>
-          </div>
-        </div>
+      {/* Selected Report Modal Fade-in Transition */}
+      <AnimatePresence>
+        {selectedReport && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg max-w-2xl w-full p-6 space-y-5 shadow-xl text-xs my-8"
+            >
+              
+              {/* Toolbar */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                  Patient Assessment Report
+                </h3>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleExportPDF}
+                    className="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-semibold flex items-center gap-1"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export PDF</span>
+                  </motion.button>
+                  <button
+                    onClick={() => setSelectedReport(null)}
+                    className="text-slate-400 hover:text-slate-600 font-bold px-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
 
-        {/* Doctor Signature & Authorization Line */}
-        <div className="pt-8 border-t-2 border-border flex items-end justify-between text-xs">
-          <div>
-            <div className="flex items-center gap-1.5 text-accent font-bold mb-1">
-              <ShieldCheck className="w-4 h-4 text-accent" /> Validated by Intelligent Diabetes Diagnostic System
-            </div>
-            <p className="text-text-secondary text-[10px]">Model Architecture: Random Forest (120 Estimators) / Scikit-Learn Engine</p>
-          </div>
-        </div>
-      </div>
+              {/* Printable Content */}
+              <div ref={reportRef} className="space-y-4 p-2 bg-white text-slate-900">
+                
+                <div className="border-b border-slate-200 pb-3 flex justify-between items-start">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Diabetes Risk Prediction System</h2>
+                    <p className="text-[11px] text-slate-500">Biomedical Engineering Project • Clinical Assessment Report</p>
+                  </div>
+                  <div className="text-right text-[11px] text-slate-500">
+                    <div>Date: {selectedReport.created_at || new Date().toLocaleDateString('en-GB')}</div>
+                    <div>Report ID: #{selectedReport.id || '101'}</div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-800 text-xs">Patient Information</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs border border-slate-200 rounded p-2.5 bg-slate-50">
+                    <div><strong>Patient ID / Name:</strong> {selectedReport.patient_name || 'Patient'}</div>
+                    <div><strong>Age:</strong> {selectedReport.age || selectedReport.formData?.age || 45} yrs</div>
+                    <div><strong>Body Mass Index (BMI):</strong> {selectedReport.bmi || selectedReport.formData?.bmi || 28.4} kg/m²</div>
+                    <div><strong>Risk Status:</strong> {selectedReport.risk_level || 'Low Risk'}</div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-800 text-xs">Clinical Measurements</h4>
+                  <table className="w-full text-left text-xs border border-slate-200 border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                        <th className="py-1.5 px-3">Parameter</th>
+                        <th className="py-1.5 px-3">Measured Value</th>
+                        <th className="py-1.5 px-3">Normal Reference</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      <tr>
+                        <td className="py-1.5 px-3 font-medium">Glucose Level</td>
+                        <td className="py-1.5 px-3">{selectedReport.glucose || selectedReport.formData?.glucose || 110} mg/dL</td>
+                        <td className="py-1.5 px-3 text-slate-500">70 – 140 mg/dL</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5 px-3 font-medium">Blood Pressure</td>
+                        <td className="py-1.5 px-3">{selectedReport.blood_pressure || selectedReport.formData?.blood_pressure || 72} mmHg</td>
+                        <td className="py-1.5 px-3 text-slate-500">60 – 80 mmHg</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1.5 px-3 font-medium">Serum Insulin</td>
+                        <td className="py-1.5 px-3">{selectedReport.insulin || selectedReport.formData?.insulin || 85} μU/mL</td>
+                        <td className="py-1.5 px-3 text-slate-500">16 – 166 μU/mL</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
+                  <div className="font-bold text-slate-900">
+                    Risk Level: {selectedReport.risk_level || 'Low Risk'} ({selectedReport.probability ? (selectedReport.probability * 100).toFixed(1) : 18.0}%)
+                  </div>
+                  <p className="text-slate-700 leading-relaxed">
+                    Based on the entered clinical measurements, the machine learning classification model estimates a 
+                    {' '}<strong>{selectedReport.risk_level || 'Low Risk'}</strong> assessment for diabetes.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-teal-50 border border-teal-200 rounded text-xs space-y-1 text-teal-900">
+                  <div className="font-bold">General Recommendation</div>
+                  <p className="leading-relaxed">
+                    Maintain regular physical activity, a balanced nutrition plan, and annual clinical health check-ups. Consider discussing these results with a qualified healthcare professional.
+                  </p>
+                </div>
+
+                <div className="pt-2 text-[10px] text-slate-500 border-t border-slate-200">
+                  <strong>Disclaimer:</strong> Educational/research use only. This prediction is generated as part of a B.E. Biomedical Engineering student project and does not replace professional medical diagnosis.
+                </div>
+
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
 
 export default Reports;
-
-

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Dynamic API Base URL resolution for Local PC, Mobile Network Wi-Fi, and Render Production
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
   const customUrl = localStorage.getItem('api_host_url') || import.meta.env.VITE_API_URL;
   if (customUrl) {
     const cleanUrl = customUrl.trim().replace(/\/+$/, '');
@@ -12,7 +12,7 @@ const getApiBaseUrl = () => {
     return 'https://diabeticpredictapp.onrender.com/api';
   }
 
-  return 'http://localhost:5000/api';
+  return '/api';
 };
 
 const api = axios.create({
@@ -76,6 +76,9 @@ const saveLocalHistory = (entry) => {
 export const predictDiabetes = async (formData) => {
   try {
     const res = await api.post('/predict', formData);
+    if (res.data) {
+      saveLocalHistory(res.data);
+    }
     return res.data;
   } catch (err) {
     console.warn('Flask backend unreachable, computing client-side fallback ML model...', err);
@@ -145,7 +148,17 @@ export const predictDiabetes = async (formData) => {
 export const getPredictionHistory = async (search = '', risk = '', outcome = '') => {
   try {
     const res = await api.get('/history', { params: { search, risk, outcome } });
-    return res.data;
+    const remoteList = Array.isArray(res.data) ? res.data : (res.data?.history || []);
+    const localList = getLocalHistory();
+    
+    // Combine remote SQLite history with local entries without duplicates
+    const combined = [...remoteList];
+    localList.forEach(loc => {
+      if (!combined.some(rem => rem.id === loc.id || (rem.patient_name === loc.patient_name && rem.created_at === loc.created_at))) {
+        combined.push(loc);
+      }
+    });
+    return combined;
   } catch (err) {
     let local = getLocalHistory();
     if (search) {
@@ -157,7 +170,7 @@ export const getPredictionHistory = async (search = '', risk = '', outcome = '')
     if (outcome !== '') {
       local = local.filter(item => item.outcome === parseInt(outcome));
     }
-    return { history: local, count: local.length };
+    return local;
   }
 };
 

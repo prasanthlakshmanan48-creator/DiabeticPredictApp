@@ -1,253 +1,199 @@
 import React, { useState, useEffect } from 'react';
-import { getPredictionHistory, deleteHistoryItem } from '../services/api';
-import { History as HistoryIcon, Search, Trash2, Download, RefreshCw, FileText, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { History as HistoryIcon, Search, Filter, ArrowUpRight, ArrowDownRight, FileText } from 'lucide-react';
+import { getPredictionHistory } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const History = () => {
-  const [history, setHistory] = useState([]);
+  const navigate = useNavigate();
+  const [historyList, setHistoryList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [riskFilter, setRiskFilter] = useState('');
-  const [outcomeFilter, setOutcomeFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const navigate = useNavigate();
+  const [riskFilter, setRiskFilter] = useState('all');
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await getPredictionHistory(search, riskFilter, outcomeFilter);
-      if (res && res.history) {
-        setHistory(res.history);
-      }
+      const data = await getPredictionHistory();
+      const list = Array.isArray(data) ? data : (data?.history || []);
+      setHistoryList(list);
     } catch (err) {
-      toast.error('Failed to fetch prediction history.');
+      console.warn("Error loading prediction history:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchHistory();
-  }, [search, riskFilter, outcomeFilter]);
+  const filteredHistory = historyList.filter(item => {
+    const matchesSearch = (item.patient_name || '').toLowerCase().includes(search.toLowerCase()) ||
+                          (item.risk_level || '').toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = riskFilter === 'all' || (item.risk_level || '').toLowerCase().includes(riskFilter.toLowerCase());
+    return matchesSearch && matchesFilter;
+  });
 
-  const handleDelete = async (id, e) => {
-    e.stopPropagation();
-    if (!window.confirm(`Are you sure you want to delete prediction record #${id}?`)) return;
+  const calculatePatientComparison = (currentRecord, index) => {
+    const samePatientHistory = historyList.filter(
+      (h, i) => i > index && (h.patient_name || '').toLowerCase() === (currentRecord.patient_name || '').toLowerCase()
+    );
+    if (samePatientHistory.length === 0) return null;
 
-    try {
-      await deleteHistoryItem(id);
-      toast.success(`Record #${id} deleted.`);
-      fetchHistory();
-    } catch (err) {
-      toast.error('Failed to delete record.');
-    }
+    const previousRecord = samePatientHistory[0];
+    const currentProb = currentRecord.probability ? currentRecord.probability * 100 : (currentRecord.prediction === 1 ? 75 : 18);
+    const prevProb = previousRecord.probability ? previousRecord.probability * 100 : (previousRecord.prediction === 1 ? 75 : 18);
+    const diff = currentProb - prevProb;
+
+    return {
+      prevProb: prevProb.toFixed(1),
+      currentProb: currentProb.toFixed(1),
+      diff: diff.toFixed(1),
+      improved: diff < 0
+    };
   };
-
-  const handleExportCSV = () => {
-    if (history.length === 0) {
-      toast.error('No history records available to export.');
-      return;
-    }
-
-    const headers = ['ID', 'Patient Name', 'Outcome', 'Probability (%)', 'Risk Level', 'Glucose', 'BMI', 'Age', 'Timestamp'];
-    const rows = history.map(item => [
-      item.id,
-      `"${item.patient_name}"`,
-      item.outcome === 1 ? 'Diabetic' : 'Non-Diabetic',
-      (item.probability * 100).toFixed(1),
-      item.risk_level,
-      item.glucose,
-      item.bmi,
-      item.age,
-      `"${item.created_at || item.timestamp}"`
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Diabetes_Predictions_History_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success('Exported history as CSV file!');
-  };
-
-  const totalPages = Math.ceil(history.length / itemsPerPage) || 1;
-  const paginatedHistory = history.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-text dark:text-text-dark flex items-center gap-2.5">
-            <HistoryIcon className="w-7 h-7 text-accent dark:text-accent-dark" />
-            <span>Patient Prediction Logs & History</span>
-          </h1>
-          <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
-            SQLite database archives with search, risk filters, record deletion, and CSV export.
-          </p>
+    <div className="w-full space-y-6">
+      
+      {/* Heading (Delay 0s) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="pb-4 border-b border-slate-200 dark:border-slate-700"
+      >
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <HistoryIcon className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+          <span>Prediction History</span>
+        </h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Historical log of patient assessments recorded in the SQLite database.
+        </p>
+      </motion.div>
+
+      {/* Search & Filter Toolbar (Delay 0.08s) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: 0.08 }}
+        className="flex flex-col sm:flex-row items-center gap-3"
+      >
+        <div className="relative flex-1 w-full sm:max-w-xs">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search patient ID or name..."
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+          />
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-white dark:bg-accent-dark dark:text-bg-dark font-bold text-xs transition-colors shadow-subtle self-start sm:self-auto"
-        >
-          <Download className="w-4 h-4" /> Export CSV File
-        </button>
-      </div>
-
-      {/* Search & Filters Card */}
-      <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-4 shadow-subtle">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-          {/* Search bar */}
-          <div className="md:col-span-6 relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-3 text-text-secondary dark:text-text-dark-secondary" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              placeholder="Search by patient name or record ID..."
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark focus:ring-2 focus:ring-accent/20 outline-none"
-            />
-          </div>
-
-          {/* Risk Tier Filter */}
-          <div className="md:col-span-3">
-            <select
-              value={riskFilter}
-              onChange={(e) => { setRiskFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 text-xs rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark outline-none"
-            >
-              <option value="">All Risk Tiers</option>
-              <option value="Low Risk">Low Risk</option>
-              <option value="Medium Risk">Medium Risk</option>
-              <option value="High Risk">High Risk</option>
-            </select>
-          </div>
-
-          {/* Outcome Filter */}
-          <div className="md:col-span-3">
-            <select
-              value={outcomeFilter}
-              onChange={(e) => { setOutcomeFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 text-xs rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark outline-none"
-            >
-              <option value="">All Outcomes</option>
-              <option value="0">Non-Diabetic (0)</option>
-              <option value="1">Diabetic (1)</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <select
+            value={riskFilter}
+            onChange={(e) => setRiskFilter(e.target.value)}
+            className="py-1.5 px-3 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+          >
+            <option value="all">All Risk Levels</option>
+            <option value="low">Low Risk</option>
+            <option value="moderate">Moderate Risk</option>
+            <option value="high">High Risk</option>
+          </select>
         </div>
-      </div>
+      </motion.div>
 
-      {/* History Table Card */}
-      <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl overflow-hidden shadow-subtle">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-bg dark:bg-bg-dark text-text dark:text-text-dark font-bold border-b border-border dark:border-border-dark">
-              <tr>
-                <th className="p-4">ID</th>
-                <th className="p-4">Patient Name</th>
-                <th className="p-4">Outcome</th>
-                <th className="p-4">Risk %</th>
-                <th className="p-4">Biometrics (Glu/BMI/Age)</th>
-                <th className="p-4">Timestamp</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border dark:divide-border-dark text-text-secondary dark:text-text-dark-secondary">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center text-text-secondary">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-accent" />
-                    <span>Loading prediction history...</span>
-                  </td>
+      {/* History Records Table (Delay 0.16s) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.16 }}
+        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm"
+      >
+        {loading ? (
+          <div className="py-8 text-center text-xs text-slate-400">
+            Loading assessment logs...
+          </div>
+        ) : filteredHistory.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="py-12 text-center text-xs text-slate-500"
+          >
+            No historical assessment records found.
+          </motion.div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 font-semibold">
+                  <th className="py-2.5 px-4">Patient ID / Subject</th>
+                  <th className="py-2.5 px-4">Date</th>
+                  <th className="py-2.5 px-4">Risk Level</th>
+                  <th className="py-2.5 px-4">Probability</th>
+                  <th className="py-2.5 px-4">Historical Comparison</th>
+                  <th className="py-2.5 px-4">Action</th>
                 </tr>
-              ) : paginatedHistory.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center text-text-secondary">
-                    No prediction records found matching search criteria.
-                  </td>
-                </tr>
-              ) : (
-                paginatedHistory.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => navigate('/reports', { state: { result: item } })}
-                    className="hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
-                  >
-                    <td className="p-4 font-mono font-bold text-text-secondary">#{item.id}</td>
-                    <td className="p-4 font-bold text-text dark:text-text-dark">{item.patient_name}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold ${
-                        item.outcome === 1
-                          ? 'bg-[#FCEBEB] text-[#A32D2D] border border-[#A32D2D]/30'
-                          : 'bg-[#EAF3DE] text-[#3B6D11] border border-[#3B6D11]/30'
-                      }`}>
-                        {item.outcome === 1 ? <XCircle className="w-3 h-3 text-[#A32D2D]" /> : <CheckCircle2 className="w-3 h-3 text-[#3B6D11]" />}
-                        <span>{item.outcome === 1 ? 'Diabetic' : 'Non-Diabetic'}</span>
-                      </span>
-                    </td>
-                    <td className="p-4 font-extrabold text-text dark:text-text-dark">{item.risk_percentage || (item.probability * 100).toFixed(1)}%</td>
-                    <td className="p-4 text-text-secondary dark:text-text-dark-secondary">
-                      {item.glucose} mg/dL | {item.bmi} kg/m² | {item.age} yrs
-                    </td>
-                    <td className="p-4 text-[11px] text-text-secondary dark:text-text-dark-secondary">{item.created_at || item.timestamp}</td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-slate-700 dark:text-slate-300">
+                {filteredHistory.map((item, idx) => {
+                  const comparison = calculatePatientComparison(item, idx);
+                  return (
+                    <tr key={item.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                      <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100">
+                        {item.patient_name || `Patient #${item.id}`}
+                      </td>
+                      <td className="py-2.5 px-4">{item.created_at || '14 Aug 2026'}</td>
+                      <td className="py-2.5 px-4">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                          (item.risk_level || '').toLowerCase().includes('high')
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                            : (item.risk_level || '').toLowerCase().includes('moderate')
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                        }`}>
+                          {item.risk_level || 'Low Risk'}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4 font-mono">
+                        {item.probability ? `${(item.probability * 100).toFixed(1)}%` : '18.0%'}
+                      </td>
+                      <td className="py-2.5 px-4">
+                        {comparison ? (
+                          <div className="flex items-center gap-1 text-[11px]">
+                            <span className="text-slate-500">Prev: {comparison.prevProb}% → Current: {comparison.currentProb}%</span>
+                            <span className={`font-semibold flex items-center ${comparison.improved ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {comparison.improved ? <ArrowDownRight className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
+                              {comparison.diff}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">Single assessment</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-4">
                         <button
                           onClick={() => navigate('/reports', { state: { result: item } })}
-                          className="p-1.5 rounded-lg text-text-secondary hover:text-accent hover:bg-bg transition-colors"
-                          title="View Report"
+                          className="text-teal-600 dark:text-teal-400 font-semibold hover:underline flex items-center gap-1"
                         >
-                          <FileText className="w-4 h-4" />
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>View Report</span>
                         </button>
-                        <button
-                          onClick={(e) => handleDelete(item.id, e)}
-                          className="p-1.5 rounded-lg text-text-secondary hover:text-[#A32D2D] hover:bg-[#FCEBEB] transition-colors"
-                          title="Delete Record"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Bar */}
-        <div className="p-4 border-t border-border dark:border-border-dark flex items-center justify-between text-xs text-text-secondary dark:text-text-dark-secondary">
-          <span>Showing Page {currentPage} of {totalPages} ({history.length} Total Records)</span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg bg-bg dark:bg-bg-dark hover:bg-border/30 disabled:opacity-40 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg bg-bg dark:bg-bg-dark hover:bg-border/30 disabled:opacity-40 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
-      </div>
+        )}
+      </motion.div>
+
     </div>
   );
 };
 
 export default History;
-
-

@@ -4,117 +4,33 @@
 
 @layer base {
   body {
-    background-color: #FAFAF9;
-    color: #1C1B1A;
-    font-family: 'Plus Jakarta Sans', 'Inter', 'Outfit', system-ui, sans-serif;
-    transition: color 200ms, background-color 200ms;
+    background-color: #F8FAFC;
+    color: #1E293B;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   .dark body {
-    background-color: #07090C;
-    color: #F3F4F6;
+    background-color: #0F172A;
+    color: #F1F5F9;
   }
 }
 
-/* Force complete removal of all white borders in dark mode */
-.dark *:not(input:focus):not(select:focus):not(textarea:focus) {
-  border-color: transparent !important;
-}
-
-/* Accessibility: Large Text Scale */
-html.text-lg-mode {
-  font-size: 112.5%;
-}
-
-/* Accessibility: High Contrast Mode */
-html.high-contrast {
-  filter: contrast(125%);
-}
-
-html.high-contrast body {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-}
-
-html.high-contrast.dark body {
-  background-color: #000000 !important;
-  color: #FFFFFF !important;
-}
-
-html.high-contrast .glass-card,
-html.high-contrast div,
-html.high-contrast input,
-html.high-contrast button {
-  border-color: #000000 !important;
-}
-
-html.high-contrast.dark .glass-card,
-html.high-contrast.dark div,
-html.high-contrast.dark input,
-html.high-contrast.dark button {
-  border-color: #FFFFFF !important;
-}
-
-/* Premium Seamless Glassmorphism Cards (Zero White Outlines) */
-.glass-card {
+/* Simple Clean Card Styling for Academic Project */
+.project-card {
   background-color: #FFFFFF;
-  border: 1px solid #E7E5E4;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.dark .glass-card {
-  background: rgba(14, 18, 24, 0.75) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  border: 1px solid transparent !important;
-  border-radius: 20px !important;
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65) !important;
+.dark .project-card {
+  background-color: #1E293B;
+  border-color: #334155;
+  box-shadow: none;
 }
 
-/* Soft Seamless Input Fields for Dark Mode */
-.dark input[type="text"],
-.dark input[type="number"],
-.dark input[type="email"],
-.dark input[type="password"],
-.dark select,
-.dark textarea {
-  background-color: rgba(10, 13, 17, 0.8) !important;
-  border-color: transparent !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6) !important;
-}
-
-.dark input:focus,
-.dark select:focus,
-.dark textarea:focus {
-  border-color: rgba(93, 202, 165, 0.6) !important;
-  box-shadow: 0 0 0 2px rgba(93, 202, 165, 0.2) !important;
-}
-
-/* Interactive Card Elevate */
-.clinical-card-hover {
-  transition: all 0.25s ease;
-}
-
-.clinical-card-hover:hover {
-  border-color: #0F6E56;
-}
-
-.dark .clinical-card-hover:hover {
-  background: rgba(20, 26, 35, 0.85) !important;
-  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.8) !important;
-  transform: translateY(-2px);
-}
-
-
-
-/* Technical Pencil Sketch Line Accents */
-.sketch-line {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-}
-
-/* Sleek Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -123,13 +39,9 @@ html.high-contrast.dark button {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
-  border-radius: 9999px;
+  background: #CBD5E1;
+  border-radius: 4px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.5);
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
 }
-
-
-
-

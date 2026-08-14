@@ -1,106 +1,73 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Sun, Moon, Activity, Type, Eye, Globe } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Sun, Moon, Stethoscope, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const Navbar = () => {
-  const { darkMode, toggleDarkMode, largeFont, toggleLargeFont, highContrast, toggleHighContrast, language, setLanguage, t } = useTheme();
+  const { darkMode, toggleDarkMode } = useTheme();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  return (
-    <header className="sticky top-0 z-30 bg-surface/90 dark:bg-[#121518]/80 backdrop-blur-xl border-b border-border dark:border-white/10 px-4 lg:px-8 py-3 transition-colors duration-200">
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      logout();
+      toast.success('Logged out successfully.');
+      navigate('/login', { replace: true });
+    }
+  };
 
+  return (
+    <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 lg:px-6 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         
-        {/* Brand Logo & Title */}
-        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
-          <div className="w-10 h-10 rounded-xl bg-accent dark:bg-accent-dark text-white dark:text-bg-dark flex items-center justify-center transition-transform group-hover:scale-105">
-            <Activity className="w-5 h-5" />
+        {/* Title & Logo */}
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div className="w-9 h-9 rounded bg-teal-600 text-white flex items-center justify-center">
+            <Stethoscope className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base lg:text-lg text-text dark:text-text-dark tracking-tight">
-                {t('title')}
-              </span>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-accent-bg dark:bg-accent-bg-dark text-accent dark:text-accent-dark rounded-md border border-accent/20 dark:border-accent-dark/20">
-                Clinical AI
-              </span>
-            </div>
-            <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary font-medium hidden sm:block">
-              {t('tagline')}
+            <h1 className="font-bold text-sm lg:text-base text-slate-900 dark:text-slate-100 leading-tight">
+              Diabetes Risk Prediction System
+            </h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Biomedical Engineering Project
             </p>
           </div>
         </div>
 
-        {/* Accessibility & Settings Controls Toolbar */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          
-          {/* Language Switcher Pill */}
-          <div className="flex items-center gap-1 bg-bg dark:bg-bg-dark p-1 rounded-xl border border-border dark:border-border-dark">
-            <Globe className="w-3.5 h-3.5 text-text-secondary dark:text-text-dark-secondary ml-1.5" />
-            <button
-              onClick={() => setLanguage('en')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                language === 'en'
-                  ? 'bg-surface dark:bg-surface-dark text-text dark:text-text-dark border border-border dark:border-border-dark'
-                  : 'text-text-secondary dark:text-text-dark-secondary hover:text-text dark:hover:text-text-dark'
-              }`}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLanguage('ta')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                language === 'ta'
-                  ? 'bg-surface dark:bg-surface-dark text-text dark:text-text-dark border border-border dark:border-border-dark'
-                  : 'text-text-secondary dark:text-text-dark-secondary hover:text-text dark:hover:text-text-dark'
-              }`}
-            >
-              தமிழ்
-            </button>
-          </div>
+        {/* User Info & Logout */}
+        <div className="flex items-center gap-3 text-xs">
+          {user && (
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline text-slate-600 dark:text-slate-300">
+                Logged in as <strong className="text-slate-900 dark:text-slate-100">{user.fullname || user.email}</strong>
+              </span>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                title="Logout from application"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
 
-          {/* Font Size Toggle Pill */}
-          <button
-            onClick={toggleLargeFont}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
-              largeFont
-                ? 'bg-accent-bg dark:bg-accent-bg-dark text-accent dark:text-accent-dark border-accent/30 dark:border-accent-dark/30'
-                : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-dark-secondary border-border dark:border-border-dark hover:text-text dark:hover:text-text-dark'
-            }`}
-            title="Toggle Accessibility Large Font"
-          >
-            <Type className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">{largeFont ? 'Large Text' : 'Normal Text'}</span>
-          </button>
-
-          {/* High Contrast Toggle */}
-          <button
-            onClick={toggleHighContrast}
-            className={`p-2 rounded-xl border transition-all ${
-              highContrast
-                ? 'bg-accent text-white dark:bg-accent-dark dark:text-bg-dark border-accent dark:border-accent-dark font-extrabold'
-                : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-dark-secondary border-border dark:border-border-dark hover:text-text dark:hover:text-text-dark'
-            }`}
-            title="Toggle High Contrast"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-
-          {/* Dark Mode Toggle */}
+          {/* Theme Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:bg-border/40 dark:hover:bg-border-dark/60 transition-colors"
+            className="p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100"
             title="Toggle Dark Mode"
           >
-            {darkMode ? <Sun className="w-4 h-4 text-accent-dark" /> : <Moon className="w-4 h-4 text-accent" />}
+            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
         </div>
+
       </div>
     </header>
   );
 };
 
 export default Navbar;
-
-

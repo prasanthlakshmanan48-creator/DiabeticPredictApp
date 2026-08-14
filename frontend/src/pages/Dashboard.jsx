@@ -1,196 +1,273 @@
 import React, { useState, useEffect } from 'react';
-import { getAnalyticsData } from '../services/api';
-import OutcomeBarChart from '../components/Charts/OutcomeBarChart';
-import DistributionCharts from '../components/Charts/DistributionCharts';
-import ScatterPlotChart from '../components/Charts/ScatterPlotChart';
-import PredictionTrendChart from '../components/Charts/PredictionTrendChart';
-import { Users, UserX, UserCheck, Activity, Scale, Calendar, RefreshCw } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Users, 
+  PlusCircle, 
+  ArrowRight, 
+  CheckCircle, 
+  AlertTriangle, 
+  XCircle,
+  FileText,
+  Inbox
+} from 'lucide-react';
+import { getPredictionHistory } from '../services/api';
+import { motion } from 'framer-motion';
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    total_predictions: 800,
-    diabetic_count: 285,
-    non_diabetic_count: 515,
-    avg_bmi: 31.9,
-    avg_glucose: 121.2,
-    avg_age: 33.2
-  });
 
-  const loadData = async () => {
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
     setLoading(true);
     try {
-      const data = await getAnalyticsData();
-      if (data) {
-        setStats(data);
-      }
+      const data = await getPredictionHistory();
+      const list = Array.isArray(data) ? data : (data?.history || []);
+      setHistory(list);
     } catch (err) {
-      toast.error('Failed to load dynamic analytics.');
+      console.warn("Could not fetch database records:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const currentDate = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
 
-  const pieData = [
-    { name: 'Non-Diabetic', value: stats.non_diabetic_count || 515, color: '#3B6D11' },
-    { name: 'Diabetic', value: stats.diabetic_count || 285, color: '#A32D2D' }
-  ];
+  const totalAssessments = history.length;
+  const lowRiskCount = history.filter(h => (h.risk_level || '').toLowerCase().includes('low')).length;
+  const moderateRiskCount = history.filter(h => (h.risk_level || '').toLowerCase().includes('moderate')).length;
+  const highRiskCount = history.filter(h => (h.risk_level || '').toLowerCase().includes('high')).length;
 
-  const kpis = [
-    { title: 'Total Evaluated Patients', value: stats.total_predictions, icon: Users },
-    { title: 'Elevated Risk Cases', value: stats.diabetic_count, icon: UserX },
-    { title: 'Normal Risk Cases', value: stats.non_diabetic_count, icon: UserCheck },
-    { title: 'Mean Fasting Glucose', value: `${stats.avg_glucose} mg/dL`, icon: Activity },
-    { title: 'Mean Body Mass Index', value: `${stats.avg_bmi} kg/m²`, icon: Scale },
-    { title: 'Mean Cohort Age', value: `${stats.avg_age} yrs`, icon: Calendar }
-  ];
+  const cardVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.05 + 0.1,
+        duration: 0.25,
+        ease: 'easeOut'
+      }
+    })
+  };
 
   return (
-    <div className="space-y-8 pb-10">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="w-full space-y-6">
+      
+      {/* Step 1: Heading Fades In */}
+      <motion.div 
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700"
+      >
         <div>
-          <h1 className="text-2xl font-extrabold text-text dark:text-text-dark">
-            Clinical Executive Dashboard
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            Welcome back, {user?.fullname || user?.email || 'Researcher'}
           </h1>
-          <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
-            Realtime epidemiological statistics, metric distributions, and risk trends.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Diabetes Risk Prediction System • {currentDate}
           </p>
         </div>
 
-        <button
-          onClick={loadData}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs font-semibold text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors shadow-subtle self-start sm:self-auto"
+        <motion.button
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/prediction')}
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs font-semibold shadow-sm transition-colors self-start sm:self-auto"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh Data</span>
-        </button>
+          <PlusCircle className="w-4 h-4" />
+          <span>Start New Assessment</span>
+        </motion.button>
+      </motion.div>
+
+      {/* Step 2: Summary Cards Staggered */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        
+        {/* Total Assessments */}
+        <motion.div 
+          custom={0}
+          initial="hidden"
+          animate="visible"
+          variants={cardVariants}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-1.5 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="font-semibold">Total Assessments</span>
+            <Users className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+          </div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {totalAssessments}
+          </div>
+          <p className="text-[11px] text-slate-500">Database record count</p>
+        </motion.div>
+
+        {/* Low Risk Count */}
+        <motion.div 
+          custom={1}
+          initial="hidden"
+          animate="visible"
+          variants={cardVariants}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-1.5 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="font-semibold">Low Risk</span>
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {lowRiskCount}
+          </div>
+          <p className="text-[11px] text-slate-500">Low risk evaluations</p>
+        </motion.div>
+
+        {/* Moderate Risk Count */}
+        <motion.div 
+          custom={2}
+          initial="hidden"
+          animate="visible"
+          variants={cardVariants}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-1.5 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="font-semibold">Moderate Risk</span>
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+            {moderateRiskCount}
+          </div>
+          <p className="text-[11px] text-slate-500">Moderate risk evaluations</p>
+        </motion.div>
+
+        {/* High Risk Count */}
+        <motion.div 
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={cardVariants}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-1.5 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="font-semibold">High Risk</span>
+            <XCircle className="w-4 h-4 text-red-600" />
+          </div>
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+            {highRiskCount}
+          </div>
+          <p className="text-[11px] text-slate-500">High risk evaluations</p>
+        </motion.div>
+
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <div
-              key={kpi.title}
-              className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-4 shadow-subtle"
+      {/* Step 3: Recent Assessments Table Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.25 }}
+        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-4 shadow-sm"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+            Recent Assessments
+          </h2>
+          {history.length > 0 && (
+            <button
+              onClick={() => navigate('/history')}
+              className="text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline flex items-center gap-1"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-text-secondary dark:text-text-dark-secondary leading-tight">{kpi.title}</span>
-                <div className="p-1.5 rounded-lg bg-accent-bg dark:bg-accent-bg-dark text-accent dark:text-accent-dark">
-                  <Icon className="w-3.5 h-3.5" />
-                </div>
-              </div>
-              <div className="text-xl font-extrabold text-text dark:text-text-dark mt-1 tracking-tight">
-                {kpi.value}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Row 1 Charts: Bar Chart & Pie Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Bar Chart: Outcome Count */}
-        <div className="lg:col-span-7 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-sm text-text dark:text-text-dark">Outcome Count Breakdown</h3>
-              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Total Classified Cases (Non-Diabetic vs Diabetic)</p>
-            </div>
-            <span className="px-2.5 py-1 text-[10px] font-bold bg-accent-bg text-accent dark:bg-accent-bg-dark dark:text-accent-dark rounded-md border border-accent/20 dark:border-accent-dark/20">
-              PIMA Benchmark Sample
-            </span>
-          </div>
-          <OutcomeBarChart diabeticCount={stats.diabetic_count} nonDiabeticCount={stats.non_diabetic_count} />
+              <span>View All History</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Pie Chart: Diabetic Ratio */}
-        <div className="lg:col-span-5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h3 className="font-bold text-sm text-text dark:text-text-dark">Diabetic Prevalence Ratio</h3>
-              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Percentage distribution of positive vs negative cases</p>
+        {loading ? (
+          <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <div className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+            <span>Loading records...</span>
+          </div>
+        ) : history.length === 0 ? (
+          /* Empty State */
+          <div className="py-12 text-center space-y-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+            <Inbox className="w-8 h-8 text-slate-400 mx-auto" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                No patient assessments recorded yet
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Perform your first risk prediction to view saved records here.
+              </p>
             </div>
+            <button
+              onClick={() => navigate('/prediction')}
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs font-semibold transition-colors"
+            >
+              Start New Assessment
+            </button>
           </div>
-          <div className="w-full h-64 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={85}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#181B1F',
-                    borderRadius: '12px',
-                    border: '1px solid #26292E',
-                    color: '#F2F1EF',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+        ) : (
+          /* Recent Table */
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 font-semibold">
+                  <th className="py-2.5 px-3">Patient ID</th>
+                  <th className="py-2.5 px-3">Assessment Date</th>
+                  <th className="py-2.5 px-3">Risk Level</th>
+                  <th className="py-2.5 px-3">Probability</th>
+                  <th className="py-2.5 px-3">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-slate-700 dark:text-slate-300">
+                {history.slice(0, 6).map((item, idx) => (
+                  <tr key={item.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-slate-100">
+                      {item.patient_name || `Patient #${item.id || idx + 1}`}
+                    </td>
+                    <td className="py-2.5 px-3">{item.created_at || currentDate}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        (item.risk_level || '').toLowerCase().includes('high')
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                          : (item.risk_level || '').toLowerCase().includes('moderate')
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      }`}>
+                        {item.risk_level || 'Low Risk'}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono">
+                      {item.probability ? `${(item.probability * 100).toFixed(1)}%` : 'N/A'}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <button
+                        onClick={() => navigate('/reports', { state: { result: item } })}
+                        className="text-teal-600 dark:text-teal-400 font-semibold hover:underline flex items-center gap-1"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>View Report</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Row 2 Charts: Histograms (Age, BMI, Glucose) */}
-      <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-bold text-sm text-text dark:text-text-dark">Feature Distribution Histograms</h3>
-            <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Switch between Age, BMI, and Glucose parameter distributions</p>
-          </div>
-        </div>
-        <DistributionCharts />
-      </div>
+      </motion.div>
 
-      {/* Row 3 Charts: Scatter Plot & Line Chart Trends */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Scatter Plot: BMI vs Glucose */}
-        <div className="lg:col-span-6 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-sm text-text dark:text-text-dark">Scatter Plot: BMI vs Glucose</h3>
-              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Biometric correlation colored by diagnosis outcome</p>
-            </div>
-          </div>
-          <ScatterPlotChart />
-        </div>
-
-        {/* Line Chart: Prediction Trends */}
-        <div className="lg:col-span-6 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-sm text-text dark:text-text-dark">Weekly Prediction Volume Trends</h3>
-              <p className="text-[11px] text-text-secondary dark:text-text-dark-secondary">Daily evaluation counts logged in SQLite database</p>
-            </div>
-          </div>
-          <PredictionTrendChart />
-        </div>
-      </div>
     </div>
   );
 };
 
 export default Dashboard;
-
-

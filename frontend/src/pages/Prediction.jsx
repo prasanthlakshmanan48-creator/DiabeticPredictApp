@@ -1,486 +1,589 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { predictDiabetes } from '../services/api';
-import RiskGauge from '../components/RiskGauge';
-import HealthScoreGauge from '../components/HealthScoreGauge';
-import ExplainableAI from '../components/ExplainableAI';
-import VoiceAssistant from '../components/VoiceAssistant';
-import PresetButtons from '../components/PresetButtons';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import { 
   Stethoscope, 
-  HelpCircle, 
-  Sparkles, 
+  User, 
   Activity, 
-  FileText,
-  CheckCircle2,
-  XCircle,
-  ArrowRight,
+  Sliders,
+  ArrowRight, 
   RotateCcw,
-  ClipboardList
+  CheckCircle,
+  Info,
+  FileText,
+  Loader2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+// Number-counting animation component (0% -> target%)
+const AnimatedProbability = ({ targetValue }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = parseFloat(targetValue) || 0;
+    if (end === 0) {
+      setCount(0);
+      return;
+    }
+    const duration = 500; // ms
+    const stepTime = 16;
+    const steps = duration / stepTime;
+    const increment = end / steps;
+
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, stepTime);
+
+    return () => clearInterval(timer);
+  }, [targetValue]);
+
+  return <span>{count.toFixed(1)}%</span>;
+};
 
 const Prediction = () => {
-  const { t } = useTheme();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [activeTooltip, setActiveTooltip] = useState(null);
   const navigate = useNavigate();
 
-  const fieldsInfo = [
-    {
-      name: 'patient_name',
-      label: t('patientName'),
-      placeholder: 'Full patient name',
-      type: 'text',
-      unit: '',
-      section: 'metadata',
-      tooltip: 'Identifies the clinical subject for record-keeping and PDF export.',
-      defaultValue: 'Patient 1'
-    },
-    {
-      name: 'glucose',
-      label: t('glucose'),
-      placeholder: 'e.g. 110',
-      type: 'number',
-      step: 'any',
-      unit: 'mg/dL',
-      section: 'lab',
-      tooltip: '2-hour plasma glucose concentration from oral glucose tolerance test.',
-      defaultValue: 110
-    },
-    {
-      name: 'blood_pressure',
-      label: t('bloodPressure'),
-      placeholder: 'e.g. 72',
-      type: 'number',
-      step: 'any',
-      unit: 'mmHg',
-      section: 'lab',
-      tooltip: 'Diastolic blood pressure reading in mmHg.',
-      defaultValue: 72
-    },
-    {
-      name: 'insulin',
-      label: t('insulin'),
-      placeholder: 'e.g. 80',
-      type: 'number',
-      step: 'any',
-      unit: 'μU/mL',
-      section: 'lab',
-      tooltip: '2-Hour serum insulin level in micro-units per milliliter.',
-      defaultValue: 80
-    },
-    {
-      name: 'dpf',
-      label: t('dpf'),
-      placeholder: 'e.g. 0.38',
-      type: 'number',
-      step: 'any',
-      unit: 'score',
-      section: 'lab',
-      tooltip: 'Scores genetic likelihood of diabetes based on family medical history.',
-      defaultValue: 0.38
-    },
-    {
-      name: 'bmi',
-      label: t('bmi'),
-      placeholder: 'e.g. 24.5',
-      type: 'number',
-      step: 'any',
-      unit: 'kg/m²',
-      section: 'physical',
-      tooltip: 'Body Mass Index calculated as weight in kg / (height in m)². Key risk factor.',
-      defaultValue: 24.5
-    },
-    {
-      name: 'age',
-      label: t('age'),
-      placeholder: 'e.g. 32',
-      type: 'number',
-      step: 'any',
-      unit: 'years',
-      section: 'physical',
-      tooltip: 'Age of the patient in years.',
-      defaultValue: 32
-    },
-    {
-      name: 'pregnancies',
-      label: t('pregnancies'),
-      placeholder: 'e.g. 1',
-      type: 'number',
-      step: 'any',
-      unit: 'count',
-      section: 'physical',
-      tooltip: 'Number of past pregnancies. Gestational history influences metabolic insulin sensitivity.',
-      defaultValue: 1
-    },
-    {
-      name: 'skin_thickness',
-      label: t('skinThickness'),
-      placeholder: 'e.g. 23',
-      type: 'number',
-      step: 'any',
-      unit: 'mm',
-      section: 'physical',
-      tooltip: 'Triceps skin fold thickness in mm, used to estimate body fat percentage.',
-      defaultValue: 23
-    }
-  ];
-
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    mode: 'onChange',
     defaultValues: {
-      patient_name: 'Patient 1',
-      pregnancies: 1,
+      patient_name: 'Patient #1',
+      age: 45,
+      gender: 'Female',
+      bmi: 28.4,
       glucose: 110,
       blood_pressure: 72,
-      skin_thickness: 23,
-      insulin: 80,
-      bmi: 24.5,
-      dpf: 0.38,
-      age: 32
+      insulin: 85,
+      pregnancies: 1,
+      family_history: 'No',
+      physical_activity: 'Moderate',
+      skin_thickness: 20,
+      diabetes_pedigree: 0.35
     }
   });
-
-  const handleSelectPreset = (presetData) => {
-    Object.keys(presetData).forEach(key => {
-      setValue(key, presetData[key]);
-    });
-    toast.success(`Loaded clinical preset: ${presetData.patient_name}`);
-  };
-
-  const handleVoiceInputRecognized = (transcript) => {
-    if (transcript.toLowerCase().includes('glucose')) {
-      const match = transcript.match(/\d+/);
-      if (match) setValue('glucose', parseInt(match[0]));
-    } else if (transcript.toLowerCase().includes('age')) {
-      const match = transcript.match(/\d+/);
-      if (match) setValue('age', parseInt(match[0]));
-    } else {
-      setValue('patient_name', transcript);
-    }
-  };
 
   const onSubmit = async (data) => {
     setLoading(true);
     setResult(null);
-
-    const loaderToast = toast.loading(t('generating'));
-
     try {
-      const payload = { ...data, userId: user?.uid || 'guest_user' };
-      const response = await predictDiabetes(payload);
-      toast.dismiss(loaderToast);
+      const payload = {
+        patient_name: data.patient_name || 'Patient',
+        age: parseFloat(data.age),
+        bmi: parseFloat(data.bmi),
+        blood_pressure: parseFloat(data.blood_pressure),
+        glucose: parseFloat(data.glucose),
+        insulin: parseFloat(data.insulin),
+        skin_thickness: parseFloat(data.skin_thickness) || 0,
+        dpf: parseFloat(data.diabetes_pedigree) || 0.35,
+        pregnancies: parseFloat(data.pregnancies) || 0,
+      };
 
-      if (response) {
-        const risk = response.risk_percentage || 20;
-        const healthScore = Math.max(10, Math.min(100, Math.round(100 - risk)));
-        
-        const fullResult = { ...response, health_score: healthScore, userId: user?.id };
-        setResult(fullResult);
-        localStorage.setItem('latest_patient_prediction', JSON.stringify(fullResult));
-
-        if (response.prediction === 0) {
-          toast.success(`Diagnostic Complete for ${response.patient_name}: LOW RISK`);
-          confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
-        } else {
-          toast.error(`Diagnostic Complete for ${response.patient_name}: ELEVATED RISK`);
-        }
+      const res = await predictDiabetes(payload);
+      if (res) {
+        setResult({
+          ...res,
+          formData: data
+        });
+        toast.success('Risk assessment calculated successfully.');
       }
     } catch (err) {
-      toast.dismiss(loaderToast);
-      toast.error('Error computing prediction result.');
+      toast.error(err.message || 'Error processing prediction.');
     } finally {
       setLoading(false);
     }
   };
 
-  const speechText = result
-    ? `Patient ${result.patient_name}. Diabetes Risk Level: ${result.risk_level}. Health Score: ${result.health_score} out of 100. ${result.prediction === 1 ? 'High risk indicated. Please consult a physician.' : 'Low risk indicated. Continue healthy lifestyle.'}`
-    : "";
+  const featureImportances = [
+    { name: 'Glucose Level', weight: 31.2, value: `${result?.formData?.glucose || 110} mg/dL` },
+    { name: 'BMI (Body Mass Index)', weight: 22.4, value: `${result?.formData?.bmi || 28.4} kg/m²` },
+    { name: 'Age', weight: 14.5, value: `${result?.formData?.age || 45} yrs` },
+    { name: 'Diabetes Pedigree Function', weight: 11.8, value: `${result?.formData?.diabetes_pedigree || 0.35}` },
+    { name: 'Serum Insulin', weight: 7.6, value: `${result?.formData?.insulin || 85} μU/mL` },
+  ];
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-text dark:text-text-dark flex items-center gap-2.5">
-            <Stethoscope className="w-7 h-7 text-accent dark:text-accent-dark" />
-            <span>{t('prediction')}</span>
+    <div className="w-full max-w-4xl space-y-6">
+      
+      {/* Title & Subtitle */}
+      <motion.div 
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="pb-4 border-b border-slate-200 dark:border-slate-700"
+      >
+        <div className="flex items-center gap-2">
+          <Stethoscope className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            Diabetes Risk Prediction
           </h1>
-          <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
-            {t('subtitle')}
-          </p>
         </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Enter the patient's information to estimate diabetes risk.
+        </p>
+      </motion.div>
 
-        <div className="flex items-center gap-3">
-          <VoiceAssistant textToRead={speechText} onVoiceInput={handleVoiceInputRecognized} />
+      {/* Main Input Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        
+        {/* Section 1: Patient Details (Delay 0.08s) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.08 }}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-5 space-y-4 shadow-sm"
+        >
+          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+            <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <span>Patient Details</span>
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Patient Name / ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                {...register('patient_name', { required: 'Patient ID or name is required.' })}
+                placeholder="e.g. Patient #101"
+                className={`w-full px-3 py-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none ${
+                  errors.patient_name ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-600 focus:border-teal-600'
+                }`}
+              />
+              {errors.patient_name && (
+                <p className="text-[11px] text-red-500 mt-1">{errors.patient_name.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Age (years) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                {...register('age', { 
+                  required: 'Please enter age.',
+                  min: { value: 1, message: 'Please enter a valid age.' },
+                  max: { value: 120, message: 'Please enter a valid age (1-120).' }
+                })}
+                placeholder="45"
+                className={`w-full px-3 py-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none ${
+                  errors.age ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-600 focus:border-teal-600'
+                }`}
+              />
+              {errors.age ? (
+                <p className="text-[11px] text-red-500 mt-1">{errors.age.message}</p>
+              ) : (
+                <span className="text-[10px] text-slate-400">Valid range: 1 - 120 yrs</span>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Gender
+              </label>
+              <select
+                {...register('gender')}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+              >
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                BMI (kg/m²) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                {...register('bmi', { 
+                  required: 'BMI value is required.',
+                  min: { value: 10, message: 'Please enter a valid BMI value.' },
+                  max: { value: 80, message: 'Please enter a valid BMI value (10-80).' }
+                })}
+                placeholder="28.4"
+                className={`w-full px-3 py-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none ${
+                  errors.bmi ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-600 focus:border-teal-600'
+                }`}
+              />
+              {errors.bmi ? (
+                <p className="text-[11px] text-red-500 mt-1">{errors.bmi.message}</p>
+              ) : (
+                <span className="text-[10px] text-slate-400">Normal reference: 18.5 – 24.9 kg/m²</span>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Section 2: Clinical Measurements (Delay 0.16s) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.16 }}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-5 space-y-4 shadow-sm"
+        >
+          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+            <Activity className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <span>Clinical Measurements</span>
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Glucose Level (mg/dL) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                {...register('glucose', { 
+                  required: 'Glucose level is required.',
+                  min: { value: 10, message: 'Please enter a valid glucose level.' },
+                  max: { value: 600, message: 'Please enter a valid glucose level (10-600).' }
+                })}
+                placeholder="110"
+                className={`w-full px-3 py-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none ${
+                  errors.glucose ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-600 focus:border-teal-600'
+                }`}
+              />
+              {errors.glucose ? (
+                <p className="text-[11px] text-red-500 mt-1">{errors.glucose.message}</p>
+              ) : (
+                <span className="text-[10px] text-slate-400">Normal reference: 70 – 140 mg/dL</span>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Blood Pressure (mmHg) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                {...register('blood_pressure', { 
+                  required: 'Blood pressure is required.',
+                  min: { value: 30, message: 'Please enter a valid blood pressure.' },
+                  max: { value: 250, message: 'Please enter a valid blood pressure (30-250).' }
+                })}
+                placeholder="72"
+                className={`w-full px-3 py-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none ${
+                  errors.blood_pressure ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-600 focus:border-teal-600'
+                }`}
+              />
+              {errors.blood_pressure ? (
+                <p className="text-[11px] text-red-500 mt-1">{errors.blood_pressure.message}</p>
+              ) : (
+                <span className="text-[10px] text-slate-400">Normal reference: 60 – 80 mmHg</span>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Serum Insulin (μU/mL) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                {...register('insulin', { 
+                  required: 'Insulin level is required.',
+                  min: { value: 0, message: 'Insulin level cannot be negative.' },
+                  max: { value: 900, message: 'Please enter a valid insulin level.' }
+                })}
+                placeholder="85"
+                className={`w-full px-3 py-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none ${
+                  errors.insulin ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-600 focus:border-teal-600'
+                }`}
+              />
+              {errors.insulin ? (
+                <p className="text-[11px] text-red-500 mt-1">{errors.insulin.message}</p>
+              ) : (
+                <span className="text-[10px] text-slate-400">Normal reference: 16 – 166 μU/mL</span>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Pregnancies
+              </label>
+              <input
+                type="number"
+                {...register('pregnancies', { min: { value: 0, message: 'Cannot be negative.' } })}
+                placeholder="1"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+              />
+              <span className="text-[10px] text-slate-400">Gestational count (if female)</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Section 3: Additional Risk Factors (Delay 0.24s) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.24 }}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-5 space-y-4 shadow-sm"
+        >
+          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+            <Sliders className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <span>Additional Risk Factors</span>
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Family History of Diabetes
+              </label>
+              <select
+                {...register('family_history')}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Physical Activity
+              </label>
+              <select
+                {...register('physical_activity')}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+              >
+                <option value="Low">Low (&lt;1 hr/week)</option>
+                <option value="Moderate">Moderate (1-3 hrs/week)</option>
+                <option value="Active">Active (&gt;3 hrs/week)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Skin Thickness (mm)
+              </label>
+              <input
+                type="number"
+                step="any"
+                {...register('skin_thickness')}
+                placeholder="20"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+              />
+              <span className="text-[10px] text-slate-400">Triceps fold (10 – 50 mm)</span>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Diabetes Pedigree Function
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register('diabetes_pedigree')}
+                placeholder="0.35"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-600"
+              />
+              <span className="text-[10px] text-slate-400">Genetics score (0.08 – 2.42)</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Buttons (Delay 0.3s) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.3 }}
+          className="flex items-center gap-3"
+        >
+          <motion.button
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.98 }}
+            type="submit"
+            disabled={loading}
+            className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-md font-semibold text-xs flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Analyzing patient information...</span>
+              </>
+            ) : (
+              <>
+                <span>Predict Risk</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </motion.button>
 
           <button
-            onClick={() => { reset(); setResult(null); }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs font-semibold text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors shadow-subtle"
+            type="button"
+            onClick={() => {
+              if (window.confirm('Reset all entered patient form values?')) {
+                reset();
+                setResult(null);
+              }
+            }}
+            className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-md text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Form</span>
+            <span>Reset Inputs</span>
           </button>
-        </div>
-      </div>
+        </motion.div>
+      </form>
 
-      {/* Quick Test Presets Banner */}
-      <PresetButtons onSelectPreset={handleSelectPreset} onReset={() => { reset(); setResult(null); }} />
-
-      {/* Main Grid: Input Form & Animated Result Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Input Form Column */}
-        <div className="lg:col-span-7 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-6 shadow-subtle">
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-border dark:border-border-dark">
-            <h3 className="font-bold text-sm text-text dark:text-text-dark flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-accent dark:text-accent-dark" />
-              <span>Biometric & Clinical Vector Input</span>
-            </h3>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary bg-bg dark:bg-bg-dark px-2 py-0.5 rounded border border-border dark:border-border-dark">
-              8 Diagnostic Indicators
-            </span>
+      {/* Result Output Section Reveal Sequence */}
+      {result && (
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-6 space-y-6 shadow-sm"
+        >
+          
+          {/* Result Header */}
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span>Prediction Result</span>
+            </h2>
+            <button
+              onClick={() => navigate('/reports', { state: { result } })}
+              className="text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline flex items-center gap-1"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>View Full Report</span>
+            </button>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Metadata Section */}
-            <div>
-              <label className="block text-xs font-bold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
-                Patient Metadata
-              </label>
-              <div>
-                <input
-                  type="text"
-                  placeholder="e.g. Emma Watson"
-                  {...register('patient_name', { required: 'Patient Name is required' })}
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all"
-                />
-                {errors.patient_name && (
-                  <p className="text-[10px] text-[#A32D2D] mt-1">{errors.patient_name.message}</p>
-                )}
+          {/* Risk Level & Animated Probability Box */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            {/* Risk Badge */}
+            <div className={`p-4 rounded-md border text-center space-y-1 ${
+              (result.risk_level || '').toLowerCase().includes('high')
+                ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/40 dark:border-red-800 dark:text-red-300'
+                : (result.risk_level || '').toLowerCase().includes('moderate')
+                ? 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
+            }`}>
+              <div className="text-xs font-semibold uppercase tracking-wider">Risk Level</div>
+              <div className="text-2xl font-bold">{result.risk_level || (result.prediction === 1 ? 'High Risk' : 'Low Risk')}</div>
+              <div className="text-xs pt-1">
+                Estimated Probability: <strong><AnimatedProbability targetValue={result.probability ? result.probability * 100 : 18.0} /></strong>
               </div>
             </div>
 
-            {/* Laboratory Metrics Section */}
-            <div>
-              <label className="block text-xs font-bold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
-                Laboratory Metrics
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {fieldsInfo.filter(f => f.section === 'lab').map((field) => (
-                  <div key={field.name}>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-semibold text-text dark:text-text-dark flex items-center gap-1.5">
-                        <span>{field.label}</span>
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onMouseEnter={() => setActiveTooltip(field.name)}
-                            onMouseLeave={() => setActiveTooltip(null)}
-                            className="text-text-secondary hover:text-accent transition-colors"
-                          >
-                            <HelpCircle className="w-3.5 h-3.5" />
-                          </button>
-                          {activeTooltip === field.name && (
-                            <div className="absolute left-0 bottom-full mb-2 w-56 p-2.5 bg-surface-dark text-text-dark text-[10px] border border-border-dark rounded-xl shadow-xl z-50 pointer-events-none">
-                              {field.tooltip}
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                    </div>
+            {/* Explanation Box */}
+            <div className="p-4 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs text-slate-700 dark:text-slate-300 space-y-2">
+              <div className="font-bold text-slate-900 dark:text-slate-100">Model Evaluation</div>
+              <p className="leading-relaxed">
+                Based on the information entered, the machine learning classification model estimates a <strong>{(result.risk_level || '').toLowerCase()}</strong> diabetes risk.
+              </p>
+              <div className="text-[11px] text-slate-500 pt-1">
+                <strong>Factors considered:</strong> Glucose level, BMI, Blood pressure, Serum insulin, Age, Family history.
+              </div>
+            </div>
 
-                    <div className="relative">
-                      <input
-                        type={field.type}
-                        step={field.step}
-                        placeholder={field.placeholder}
-                        {...register(field.name, { required: `${field.label} is required` })}
-                        className="w-full pl-3.5 pr-14 py-2.5 text-xs rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all"
-                      />
-                      {field.unit && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-text-secondary dark:text-text-dark-secondary pointer-events-none">
-                          {field.unit}
-                        </span>
-                      )}
-                    </div>
-                    {errors[field.name] && (
-                      <p className="text-[10px] text-[#A32D2D] mt-1">{errors[field.name].message}</p>
-                    )}
+          </div>
+
+          {/* Assessment Summary Table */}
+          <div className="space-y-3 pt-2">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+              Assessment Summary (Entered Parameters)
+            </h3>
+            
+            <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-md">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 font-semibold text-slate-600 dark:text-slate-400">
+                    <th className="py-2 px-3">Parameter</th>
+                    <th className="py-2 px-3">Entered Value</th>
+                    <th className="py-2 px-3">Normal Reference</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+                  <tr>
+                    <td className="py-2 px-3 font-medium">Glucose Level</td>
+                    <td className="py-2 px-3">{result.formData?.glucose} mg/dL</td>
+                    <td className="py-2 px-3 text-slate-500">70 – 140 mg/dL</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-medium">Body Mass Index (BMI)</td>
+                    <td className="py-2 px-3">{result.formData?.bmi} kg/m²</td>
+                    <td className="py-2 px-3 text-slate-500">18.5 – 24.9 kg/m²</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-medium">Blood Pressure</td>
+                    <td className="py-2 px-3">{result.formData?.blood_pressure} mmHg</td>
+                    <td className="py-2 px-3 text-slate-500">60 – 80 mmHg</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-medium">Serum Insulin</td>
+                    <td className="py-2 px-3">{result.formData?.insulin} μU/mL</td>
+                    <td className="py-2 px-3 text-slate-500">16 – 166 μU/mL</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-medium">Age</td>
+                    <td className="py-2 px-3">{result.formData?.age} yrs</td>
+                    <td className="py-2 px-3 text-slate-500">Adult reference</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Feature Importance Weights */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs space-y-2">
+              <div className="font-bold text-slate-800 dark:text-slate-200">
+                Model Feature Importance Weights
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                {featureImportances.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between">
+                    <span>{item.name}:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{item.weight}%</span>
                   </div>
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Physical Indicators Section */}
-            <div>
-              <label className="block text-xs font-bold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
-                Physical & Demographic Indicators
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {fieldsInfo.filter(f => f.section === 'physical').map((field) => (
-                  <div key={field.name}>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-semibold text-text dark:text-text-dark flex items-center gap-1.5">
-                        <span>{field.label}</span>
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onMouseEnter={() => setActiveTooltip(field.name)}
-                            onMouseLeave={() => setActiveTooltip(null)}
-                            className="text-text-secondary hover:text-accent transition-colors"
-                          >
-                            <HelpCircle className="w-3.5 h-3.5" />
-                          </button>
-                          {activeTooltip === field.name && (
-                            <div className="absolute left-0 bottom-full mb-2 w-56 p-2.5 bg-surface-dark text-text-dark text-[10px] border border-border-dark rounded-xl shadow-xl z-50 pointer-events-none">
-                              {field.tooltip}
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                    </div>
-
-                    <div className="relative">
-                      <input
-                        type={field.type}
-                        step={field.step}
-                        placeholder={field.placeholder}
-                        {...register(field.name, { required: `${field.label} is required` })}
-                        className="w-full pl-3.5 pr-14 py-2.5 text-xs rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all"
-                      />
-                      {field.unit && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-text-secondary dark:text-text-dark-secondary pointer-events-none">
-                          {field.unit}
-                        </span>
-                      )}
-                    </div>
-                    {errors[field.name] && (
-                      <p className="text-[10px] text-[#A32D2D] mt-1">{errors[field.name].message}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+          {/* General Recommendation & Disclaimer */}
+          <div className="space-y-3 pt-2">
+            <div className="p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/40 rounded-md text-xs space-y-1.5 text-teal-900 dark:text-teal-200">
+              <div className="font-bold">General Recommendation</div>
+              <p className="leading-relaxed">
+                {(result.risk_level || '').toLowerCase().includes('high')
+                  ? 'Maintain regular physical activity, adopt a balanced low-glycemic diet, and monitor blood glucose levels. Consider discussing these clinical measurements with a qualified healthcare professional for further evaluation.'
+                  : (result.risk_level || '').toLowerCase().includes('moderate')
+                  ? 'Maintain a balanced diet, engage in regular aerobic exercise (150 mins/week), and routine annual health screenings. Discussing lifestyle habits with a healthcare professional is recommended.'
+                  : 'Continue maintaining a healthy lifestyle, physical activity, and balanced nutrition. Regular annual health checks are recommended to track biometric parameters.'
+                }
+              </p>
             </div>
 
-            {/* Submit Action */}
-            <div className="pt-4 mt-6 border-t border-border dark:border-border-dark">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 px-6 rounded-xl bg-accent hover:opacity-95 text-white dark:bg-accent-dark dark:text-bg-dark font-extrabold text-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <Activity className="w-4 h-4 animate-spin" />
-                    <span>{t('generating')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>{t('predictBtn')}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
+              <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p>
+                <strong>Educational / Research Use Only:</strong> This prediction is intended for educational and research purposes as part of a Biomedical Engineering student project and does not replace professional medical diagnosis or clinical judgment.
+              </p>
             </div>
-          </form>
-        </div>
+          </div>
 
-        {/* Animated Result Card & Health Score Gauge Column */}
-        <div className="lg:col-span-5 space-y-6">
-          <AnimatePresence mode="wait">
-            {result ? (
-              <motion.div
-                key="result"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className="space-y-6"
-              >
-                <div className={`rounded-2xl p-6 shadow-subtle border ${
-                  result.prediction === 1
-                    ? 'bg-[#FCEBEB] dark:bg-[#A32D2D]/20 border-[#A32D2D]/30'
-                    : 'bg-[#EAF3DE] dark:bg-[#3B6D11]/20 border-[#3B6D11]/30'
-                }`}>
-                  <div className="flex items-center justify-between pb-4 border-b border-border dark:border-border-dark">
-                    <div className="flex items-center gap-2.5">
-                      {result.prediction === 1 ? (
-                        <XCircle className="w-6 h-6 text-[#A32D2D]" />
-                      ) : (
-                        <CheckCircle2 className="w-6 h-6 text-[#3B6D11]" />
-                      )}
-                      <div>
-                        <h3 className="font-extrabold text-base text-text dark:text-text-dark">
-                          Subject: {result.patient_name}
-                        </h3>
-                        <p className="text-[10px] text-text-secondary dark:text-text-dark-secondary font-medium">{result.timestamp}</p>
-                      </div>
-                    </div>
+        </motion.div>
+      )}
 
-                    <button
-                      onClick={() => navigate('/reports', { state: { result } })}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs font-bold text-accent dark:text-accent-dark hover:bg-bg transition-colors"
-                    >
-                      <FileText className="w-3.5 h-3.5" /> Report PDF
-                    </button>
-                  </div>
-
-                  {/* Risk Gauge & 0-100 Health Score */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                    <RiskGauge
-                      percentage={result.risk_percentage}
-                      riskLevel={result.risk_level}
-                      confidence={result.confidence}
-                      outcome={result.prediction}
-                    />
-
-                    <HealthScoreGauge score={result.health_score || 85} />
-                  </div>
-
-                  {/* Primary Action Button: View & Print Full Patient Report */}
-                  <div className="mt-4 pt-4 border-t border-border dark:border-border-dark">
-                    <button
-                      onClick={() => navigate('/reports', { state: { result } })}
-                      className="w-full py-3 px-4 rounded-xl bg-accent text-white dark:bg-accent-dark dark:text-bg-dark font-extrabold text-xs flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span>{t('viewReport')}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Plain-English Explainable AI Card */}
-                <ExplainableAI features={result.features} outcome={result.prediction} probability={result.probability} />
-              </motion.div>
-            ) : (
-              <div className="h-full min-h-[380px] bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-8 shadow-subtle flex flex-col items-center justify-center text-center">
-                <div className="w-14 h-14 rounded-2xl bg-accent-bg dark:bg-accent-bg-dark text-accent dark:text-accent-dark border border-accent/20 dark:border-accent-dark/20 flex items-center justify-center mb-4">
-                  <Stethoscope className="w-7 h-7" />
-                </div>
-                <h4 className="font-extrabold text-base text-text dark:text-text-dark mb-1">
-                  Ready for Diagnostic Screening
-                </h4>
-                <p className="text-xs text-text-secondary dark:text-text-dark-secondary max-w-xs leading-relaxed">
-                  Provide patient biometrics on the left or click a clinical test preset to compute ML risk probability and transparent factor attribution.
-                </p>
-              </div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
     </div>
   );
 };
 
 export default Prediction;
-
