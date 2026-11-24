@@ -4,13 +4,22 @@ import sqlite3
 import datetime
 import joblib
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DIST_DIR = os.path.abspath(os.path.join(BASE_DIR, '..', 'frontend', 'dist'))
+if not os.path.exists(DIST_DIR):
+    DIST_DIR = os.path.abspath(os.path.join(BASE_DIR, 'dist'))
+
+if os.path.exists(DIST_DIR):
+    app = Flask(__name__, static_folder=DIST_DIR, static_url_path='')
+else:
+    app = Flask(__name__)
+
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 @app.after_request
@@ -24,7 +33,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 SECRET_KEY = os.environ.get('JWT_SECRET', 'diabetex_jwt_secret_key_2026_secure')
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'model')
 DB_PATH = os.path.join(BASE_DIR, 'database.db')
 
@@ -672,10 +680,31 @@ def get_model_info():
             {"feature": "Insulin", "importance": 0.076},
             {"feature": "Pregnancies", "importance": 0.055},
             {"feature": "BloodPressure", "importance": 0.042},
-            {"feature": "SkinThickness", "importance": 0.028}
         ]
     })
+
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_spa(path):
+    if path.startswith('api/'):
+        return jsonify({"error": "API endpoint not found", "path": f"/{path}"}), 404
+        
+    if app.static_folder and os.path.exists(app.static_folder):
+        target_file = os.path.join(app.static_folder, path)
+        if path != "" and os.path.isfile(target_file):
+            return send_from_directory(app.static_folder, path)
+        index_file = os.path.join(app.static_folder, 'index.html')
+        if os.path.exists(index_file):
+            return send_from_directory(app.static_folder, 'index.html')
+            
+    return jsonify({
+        "status": "online",
+        "message": "DiabeticPredictApp Flask API is running.",
+        "note": "Frontend build files missing in dist folder or start Vite dev server on port 3000."
+    }), 200
 
 if __name__ == '__main__':
     print("Starting Flask server on http://localhost:5000...")
     app.run(host='0.0.0.0', port=5000, debug=True)
+
