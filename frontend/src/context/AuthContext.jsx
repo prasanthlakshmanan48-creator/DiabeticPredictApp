@@ -21,8 +21,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Validate stored token on startup
+    const verifyStoredSession = async () => {
+      const storedToken = localStorage.getItem('auth_token') || localStorage.getItem('diabetex_jwt');
+      if (!storedToken || storedToken.startsWith('token_') || storedToken.startsWith('demo_')) {
+        logout();
+        return;
+      }
+      try {
+        const apiBase = getApiBaseUrl();
+        const res = await axios.get(`${apiBase}/me`, {
+          headers: { Authorization: `Bearer ${storedToken}` },
+          timeout: 5000
+        });
+        if (res.data && res.data.user) {
+          setUser(res.data.user);
+          localStorage.setItem('diabetex_user', JSON.stringify(res.data.user));
+        }
+      } catch (err) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          // Token expired or invalid, log out cleanly
+          logout();
+        }
+      }
+    };
+
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      verifyStoredSession();
     } else {
       delete axios.defaults.headers.common['Authorization'];
     }
@@ -35,6 +61,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await axios.post(`${apiBase}/login`, { email, password });
       const { token: jwtToken, user: userData } = res.data;
+      if (!jwtToken) {
+        throw new Error("Server did not return a valid authentication token.");
+      }
       setToken(jwtToken);
       setUser(userData);
       localStorage.setItem('diabetex_jwt', jwtToken);
@@ -42,25 +71,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('diabetex_user', JSON.stringify(userData));
       return userData;
     } catch (err) {
-      console.warn("Backend auth login error, checking fallback:", err);
-      if (err.message === "Network Error" || !err.response) {
-        const fallbackUser = {
-          id: Date.now(),
-          fullname: email ? email.split('@')[0] : 'Authenticated User',
-          email: email,
-          role: 'Clinical Specialist',
-          department: 'Healthcare',
-          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${email}`
-        };
-        const demoToken = `token_${Date.now()}`;
-        setToken(demoToken);
-        setUser(fallbackUser);
-        localStorage.setItem('diabetex_jwt', demoToken);
-        localStorage.setItem('auth_token', demoToken);
-        localStorage.setItem('diabetex_user', JSON.stringify(fallbackUser));
-        return fallbackUser;
-      }
-      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Invalid email or password.';
+      const msg = err.response?.data?.error || err.response?.data?.message || (err.message === "Network Error" ? "Cannot connect to server. Please ensure backend is running." : err.message) || 'Invalid email or password.';
       throw new Error(msg);
     } finally {
       setLoading(false);
@@ -80,6 +91,9 @@ export const AuthProvider = ({ children }) => {
         department: department || 'Healthcare' 
       });
       const { token: jwtToken, user: userData } = res.data;
+      if (!jwtToken) {
+        throw new Error("Server did not return a valid authentication token.");
+      }
       setToken(jwtToken);
       setUser(userData);
       localStorage.setItem('diabetex_jwt', jwtToken);
@@ -87,25 +101,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('diabetex_user', JSON.stringify(userData));
       return userData;
     } catch (err) {
-      console.warn("Backend register error, checking fallback:", err);
-      if (err.message === "Network Error" || !err.response) {
-        const newUser = {
-          id: Date.now(),
-          fullname: (fullname || '').trim() || (email ? email.split('@')[0] : 'Registered User'),
-          email: email,
-          role: role || 'Clinical Specialist',
-          department: department || 'Healthcare',
-          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${fullname || email}`
-        };
-        const demoToken = `token_${Date.now()}`;
-        setToken(demoToken);
-        setUser(newUser);
-        localStorage.setItem('diabetex_jwt', demoToken);
-        localStorage.setItem('auth_token', demoToken);
-        localStorage.setItem('diabetex_user', JSON.stringify(newUser));
-        return newUser;
-      }
-      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Registration failed.';
+      const msg = err.response?.data?.error || err.response?.data?.message || (err.message === "Network Error" ? "Cannot connect to server. Please ensure backend is running." : err.message) || 'Registration failed.';
       throw new Error(msg);
     } finally {
       setLoading(false);

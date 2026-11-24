@@ -291,6 +291,8 @@ def get_current_user_id():
         return None
     try:
         token = auth_header.split(" ")[1] if " " in auth_header else auth_header
+        if not token or token.startswith("token_") or token.startswith("demo_"):
+            return None
         data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         return data.get('user_id')
     except Exception:
@@ -495,11 +497,18 @@ def health():
         "timestamp": datetime.datetime.now().isoformat()
     })
 
-@app.route('/api/predict', methods=['POST'])
+@app.route('/api/predict', methods=['POST', 'OPTIONS'])
+@app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
     try:
         data = request.json or {}
         user_id = get_current_user_id()
+        if not user_id:
+            # Fallback to demo patient Prasanth (ID 5) if testing without token, but prefer authenticated user
+            user_id = 5
+
         patient_name = data.get('patient_name', 'Anonymous Patient')
         pregnancies = float(data.get('pregnancies', 0))
         glucose = float(data.get('glucose', 120))
@@ -524,7 +533,7 @@ def predict():
 
         recs = generate_recommendations(prediction, probability, bmi, glucose, age)
 
-        # Save to SQLite
+        # Save to SQLite associated with this user
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
@@ -563,8 +572,11 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route('/api/history', methods=['GET'])
+@app.route('/api/history', methods=['GET', 'OPTIONS'])
+@app.route('/history', methods=['GET', 'OPTIONS'])
 def get_history():
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
     user_id = get_current_user_id()
     search = request.args.get('search', '').strip()
     risk_filter = request.args.get('risk', '').strip()
@@ -577,7 +589,7 @@ def get_history():
     params = []
 
     if user_id:
-        query += " AND (user_id = ? OR user_id IS NULL)"
+        query += " AND user_id = ?"
         params.append(user_id)
 
     if search:
@@ -599,21 +611,29 @@ def get_history():
     history = [dict(row) for row in rows]
     return jsonify({"history": history, "count": len(history)})
 
-@app.route('/api/history/<int:pred_id>', methods=['DELETE'])
+@app.route('/api/history/<int:pred_id>', methods=['DELETE', 'OPTIONS'])
+@app.route('/history/<int:pred_id>', methods=['DELETE', 'OPTIONS'])
 def delete_history_item(pred_id):
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
     user_id = get_current_user_id()
     conn = get_db()
     cursor = conn.cursor()
     if user_id:
-        cursor.execute("DELETE FROM predictions WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (pred_id, user_id))
+        cursor.execute("DELETE FROM predictions WHERE id = ? AND user_id = ?", (pred_id, user_id))
     else:
         cursor.execute("DELETE FROM predictions WHERE id = ?", (pred_id,))
     conn.commit()
     conn.close()
     return jsonify({"success": True, "message": f"Prediction {pred_id} deleted."})
 
-@app.route('/api/analytics', methods=['GET'])
+@app.route('/api/analytics', methods=['GET', 'OPTIONS'])
+@app.route('/api/dashboard', methods=['GET', 'OPTIONS'])
+@app.route('/analytics', methods=['GET', 'OPTIONS'])
+@app.route('/dashboard', methods=['GET', 'OPTIONS'])
 def get_analytics():
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
     user_id = get_current_user_id()
     conn = get_db()
     cursor = conn.cursor()
@@ -642,8 +662,11 @@ def get_analytics():
 
     return jsonify({
         "total_predictions": total_preds,
+        "total_assessments": total_preds,
         "diabetic_count": diabetic_count,
         "non_diabetic_count": non_diabetic_count,
+        "high_risk": diabetic_count,
+        "low_risk": non_diabetic_count,
         "avg_bmi": avg_bmi,
         "avg_glucose": avg_glucose,
         "avg_age": avg_age,
